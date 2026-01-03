@@ -212,7 +212,7 @@ export default function ProfilePage() {
   const employeeRole = profile?.employee?.role || user?.role || 'employee';
 
   // Determine what to show as profile image
-  const displayImage = imagePreview || profile.profilePicture;
+  const displayImage = profile?.profilePicture;
 
   return (
     <div className="profile-page">

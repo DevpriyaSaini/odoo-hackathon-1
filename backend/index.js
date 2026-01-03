@@ -23,7 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // CORS Configuration
 app.use(cors({
-  origin: ['http://localhost:3001', 'http://localhost:4000'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -34,7 +34,7 @@ app.use((_req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "connect-src 'self' http://localhost:3001 http://localhost:4000 ws://localhost:*; " +
+    "connect-src 'self' http://localhost:3000 http://localhost:3001 http://localhost:4000 ws://localhost:*; " +
     "script-src 'self' 'unsafe-inline' 'unsafe-eval';"
   );
   next();
