@@ -86,9 +86,9 @@ export default function Sidebar() {
       <nav className="sidebar-nav">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || 
+          const isActive = pathname === item.href ||
             (item.href !== '/dashboard/admin' && item.href !== '/dashboard/employee' && pathname.startsWith(item.href));
-          
+
           return (
             <Link
               key={item.href}
@@ -113,7 +113,7 @@ export default function Sidebar() {
             <div className="sidebar-user-role">{user?.role || 'Employee'}</div>
           </div>
         </div>
-        <button 
+        <button
           onClick={logout}
           className="sidebar-link"
           style={{ marginTop: '12px', width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}

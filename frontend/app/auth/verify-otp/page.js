@@ -24,7 +24,7 @@ export default function VerifyOtpPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!email || !otp) {
       setError('Please enter your email and OTP');
       return;
@@ -39,7 +39,7 @@ export default function VerifyOtpPage() {
       setLoading(true);
       setError('');
       setSuccess('');
-      
+
       const response = await authService.verifyOtp({
         email: email,
         otp: otp,
@@ -47,16 +47,16 @@ export default function VerifyOtpPage() {
 
       if (response.success && response.token) {
         setSuccess('Email verified successfully! Redirecting...');
-        
+
         // Store token
         localStorage.setItem('dayflow_token', response.token);
-        
+
         // Clear verification email
         sessionStorage.removeItem('verify_email');
-        
+
         // Decode token to get role
         const payload = JSON.parse(atob(response.token.split('.')[1]));
-        
+
         // Redirect after delay
         setTimeout(() => {
           if (payload.role === 'admin') {
@@ -139,18 +139,18 @@ export default function VerifyOtpPage() {
               }}
               disabled={loading}
               maxLength={6}
-              style={{ 
-                fontSize: '24px', 
-                letterSpacing: '8px', 
+              style={{
+                fontSize: '24px',
+                letterSpacing: '8px',
                 textAlign: 'center',
                 fontWeight: '600',
               }}
             />
           </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary btn-lg" 
+          <button
+            type="submit"
+            className="btn btn-primary btn-lg"
             style={{ width: '100%', marginTop: '8px' }}
             disabled={loading || success}
           >

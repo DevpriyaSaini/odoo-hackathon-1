@@ -63,7 +63,7 @@ export default function RegisterPage() {
     // Upload to Cloudinary
     try {
       setUploading(true);
-      
+
       const cloudinaryFormData = new FormData();
       cloudinaryFormData.append('file', file);
       cloudinaryFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
@@ -99,7 +99,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.Adminname || !formData.email || !formData.password || !formData.image) {
       setError('Please fill in all required fields including profile photo');
@@ -119,7 +119,7 @@ export default function RegisterPage() {
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await authService.register({
         Adminname: formData.Adminname,
         email: formData.email,
@@ -169,7 +169,7 @@ export default function RegisterPage() {
           {/* Profile Photo Upload */}
           <div className="input-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
             <label style={{ marginBottom: '12px' }}>Profile Photo *</label>
-            
+
             {/* Hidden file input */}
             <input
               ref={fileInputRef}
@@ -178,7 +178,7 @@ export default function RegisterPage() {
               onChange={handleImageSelect}
               style={{ display: 'none' }}
             />
-            
+
             {/* Profile picture preview/upload button */}
             <div
               onClick={!uploading && !loading ? triggerFileSelect : undefined}
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                 width: '100px',
                 height: '100px',
                 borderRadius: '50%',
-                background: imagePreview 
+                background: imagePreview
                   ? `url(${imagePreview}) center/cover no-repeat`
                   : 'linear-gradient(135deg, var(--gray-100), var(--gray-200))',
                 display: 'flex',
@@ -201,7 +201,7 @@ export default function RegisterPage() {
             >
               {/* Upload icon or loading */}
               {uploading ? (
-                <div 
+                <div
                   style={{
                     width: '30px',
                     height: '30px',
@@ -212,21 +212,21 @@ export default function RegisterPage() {
                   }}
                 />
               ) : !imagePreview ? (
-                <svg 
-                  width="32" 
-                  height="32" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="var(--gray-400)" 
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="var(--gray-400)"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                  <circle cx="12" cy="13" r="4"/>
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
                 </svg>
               ) : (
-                <div 
+                <div
                   style={{
                     position: 'absolute',
                     inset: 0,
@@ -239,34 +239,34 @@ export default function RegisterPage() {
                   }}
                   className="upload-overlay"
                 >
-                  <svg 
-                    width="24" 
-                    height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="white" 
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="white"
                     strokeWidth="2"
                   >
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
                   </svg>
                 </div>
               )}
             </div>
-            
-            <p style={{ 
-              fontSize: '12px', 
-              color: 'var(--gray-500)', 
+
+            <p style={{
+              fontSize: '12px',
+              color: 'var(--gray-500)',
               marginTop: '8px',
               textAlign: 'center',
             }}>
               {uploading ? 'Uploading...' : formData.image ? 'Click to change photo' : 'Click to upload photo'}
             </p>
-            
+
             {formData.image && !uploading && (
-              <span style={{ 
-                fontSize: '12px', 
-                color: 'var(--success)', 
+              <span style={{
+                fontSize: '12px',
+                color: 'var(--success)',
                 marginTop: '4px',
                 display: 'flex',
                 alignItems: 'center',
@@ -396,9 +396,9 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary btn-lg" 
+          <button
+            type="submit"
+            className="btn btn-primary btn-lg"
             style={{ width: '100%', marginTop: '8px' }}
             disabled={loading || uploading}
           >

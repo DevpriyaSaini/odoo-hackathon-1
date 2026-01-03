@@ -10,11 +10,11 @@ export default function Home() {
   useEffect(() => {
     // Check if user is logged in
     const token = localStorage.getItem('dayflow_token');
-    
+
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        
+
         // Check if token is expired
         if (payload.exp * 1000 > Date.now()) {
           // Redirect based on role
@@ -28,20 +28,20 @@ export default function Home() {
       } catch (error) {
         console.error('Invalid token:', error);
       }
-      
+
       // Token is invalid or expired
       localStorage.removeItem('dayflow_token');
     }
-    
+
     // Not logged in, redirect to login
     router.push('/auth/login');
   }, [router]);
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, var(--primary-900) 0%, var(--primary-700) 100%)',
     }}>

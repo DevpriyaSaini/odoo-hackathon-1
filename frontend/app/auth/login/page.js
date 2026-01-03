@@ -24,7 +24,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
       return;
@@ -56,10 +56,10 @@ export default function LoginPage() {
       if (response.success && response.token) {
         // Store token
         localStorage.setItem('dayflow_token', response.token);
-        
+
         // Decode token to get role
         const payload = JSON.parse(atob(response.token.split('.')[1]));
-        
+
         // Redirect based on role - use window.location for reliable redirect
         if (payload.role === 'admin') {
           window.location.href = '/dashboard/admin';
@@ -164,9 +164,9 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary btn-lg" 
+          <button
+            type="submit"
+            className="btn btn-primary btn-lg"
             style={{ width: '100%', marginTop: '8px' }}
             disabled={loading}
           >
