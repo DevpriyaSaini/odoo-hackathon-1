@@ -283,10 +283,21 @@ EmployeeProfileRouter.put(
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );
 
+      // Also update the main Employee model salary fields for backward compatibility
+      if (req.body.salaryStructure) {
+        const salaryUpdate = {
+          "salary.basic": req.body.salaryStructure.basic,
+          "salary.hra": req.body.salaryStructure.hra,
+          "salary.other": req.body.salaryStructure.netSalary // Storing net as other for now or just generic allowance
+        };
+        await Employee.findByIdAndUpdate(userId, { $set: salaryUpdate });
+      }
+
       res.status(200).json({
         success: true,
         message: "Employee profile updated by admin",
         profile: updatedProfile,
+        employeeUpdated: true
       });
     } catch (error) {
       console.error("Admin update error:", error);

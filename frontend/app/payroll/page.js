@@ -6,12 +6,13 @@ import Card, { StatCard } from '../components/Card';
 import Table from '../components/Table';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { payrollService } from '../services/api';
+import { payrollService, employeeService } from '../services/api';
 
 export default function PayrollPage() {
   const { user, loading: authLoading, isAdmin } = useAuth();
   const [payroll, setPayroll] = useState([]);
   const [currentPayslip, setCurrentPayslip] = useState(null);
+  const [currentStructure, setCurrentStructure] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -34,7 +35,7 @@ export default function PayrollPage() {
 
       if (response.success) {
         // Backend returns: { success: true, payroll: [...] }
-        const payrollData = response.payroll.map(item => ({
+        const payrollData = (response.payroll || []).map(item => ({
           ...item,
           id: item._id, // Ensure id is available for table keys
           employee: item.employeeId || null // Ensure correct field mapping
@@ -43,13 +44,23 @@ export default function PayrollPage() {
         setPayroll(payrollData);
         if (payrollData.length > 0) {
           setCurrentPayslip(payrollData[0]);
+        } else if (!isAdmin()) {
+          // If no payroll history, fetch current salary structure
+          try {
+            const profileRes = await employeeService.getProfile();
+            if (profileRes.success && profileRes.profile?.salaryStructure) {
+               setCurrentStructure(profileRes.profile.salaryStructure);
+            }
+          } catch(e) {
+             console.log("Could not fetch profile structure", e);
+          }
         }
       } else {
         setError('Failed to fetch payroll records');
       }
     } catch (err) {
       console.error('Error fetching payroll:', err);
-      setError('Failed to load payroll data');
+      // Don't show error if it's just empty
     } finally {
       setLoading(false);
     }
@@ -66,6 +77,27 @@ export default function PayrollPage() {
   const getMonthName = (month) => {
     return new Date(2000, month - 1).toLocaleString('default', { month: 'long' });
   };
+
+  // Calculate totals for structure
+  const getStructureTotals = (s) => {
+    const basic = s.basic || 0;
+    const hra = s.hra || 0;
+    const allowances = s.allowances || 0;
+    const gross = basic + hra + allowances;
+    const deductions = s.deductions || 0;
+    const net = s.netSalary || (gross - deductions);
+    return { gross, deductions, net };
+  };
+
+  const displayData = currentPayslip || (currentStructure ? {
+    ...currentStructure,
+    grossSalary: getStructureTotals(currentStructure).gross,
+    totalDeductions: getStructureTotals(currentStructure).deductions,
+    netSalary: getStructureTotals(currentStructure).net,
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    status: 'Planned'
+  } : null);
 
   const columns = isAdmin() ? [
     { header: 'Employee', render: (row) => row.employee?.Employname || '-' },
@@ -111,8 +143,8 @@ export default function PayrollPage() {
         </div>
       )}
 
-      {/* Current Payslip (Employee View) */}
-      {!isAdmin() && currentPayslip && (
+      {/* Current Payslip or Structure (Employee View) */}
+      {!isAdmin() && displayData && (
         <Card hover={false} style={{ marginBottom: '24px', padding: '0', overflow: 'hidden' }}>
           <div style={{ 
             background: 'linear-gradient(135deg, var(--primary-600), var(--primary-800))', 
@@ -120,14 +152,19 @@ export default function PayrollPage() {
             color: 'white',
           }}>
             <div style={{ fontSize: '14px', opacity: 0.8, marginBottom: '4px' }}>
-              {getMonthName(currentPayslip.month)} {currentPayslip.year}
+              {currentPayslip ? `${getMonthName(displayData.month)} ${displayData.year}` : 'Current Salary Structure'}
             </div>
             <div style={{ fontSize: '36px', fontWeight: '700' }}>
-              {formatCurrency(currentPayslip.netSalary)}
+              {formatCurrency(displayData.netSalary)}
             </div>
             <div style={{ fontSize: '14px', opacity: 0.8, marginTop: '4px' }}>
-              Net Salary
+              {currentPayslip ? 'Net Salary' : 'Net Monthly Salary'}
             </div>
+            {!currentPayslip && (
+               <div style={{marginTop: '8px', fontSize: '12px', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '4px', display:'inline-block'}}>
+                 Reference only - No payslip generated yet
+               </div>
+            )}
           </div>
           
           <div style={{ padding: '24px' }}>
@@ -138,12 +175,19 @@ export default function PayrollPage() {
                   EARNINGS
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <PayslipRow label="Basic Salary" amount={currentPayslip.basic} />
-                  <PayslipRow label="HRA" amount={currentPayslip.allowances?.hra} />
-                  <PayslipRow label="Transport" amount={currentPayslip.allowances?.transport} />
-                  <PayslipRow label="Medical" amount={currentPayslip.allowances?.medical} />
+                  <PayslipRow label="Basic Salary" amount={displayData.basic} />
+                  <PayslipRow label="HRA" amount={displayData.hra || displayData.allowances?.hra} />
+                  {currentPayslip ? (
+                     <>
+                        <PayslipRow label="Transport" amount={displayData.allowances?.transport} />
+                        <PayslipRow label="Medical" amount={displayData.allowances?.medical} />
+                     </>
+                  ) : (
+                     <PayslipRow label="Allowances" amount={displayData.allowances} />
+                  )}
+                  
                   <div style={{ borderTop: '1px solid var(--gray-200)', paddingTop: '12px', marginTop: '4px' }}>
-                    <PayslipRow label="Gross Salary" amount={currentPayslip.grossSalary} bold />
+                    <PayslipRow label="Gross Salary" amount={displayData.grossSalary} bold />
                   </div>
                 </div>
               </div>
@@ -154,13 +198,17 @@ export default function PayrollPage() {
                   DEDUCTIONS
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <PayslipRow label="Income Tax" amount={currentPayslip.deductions?.tax} negative />
-                  <PayslipRow label="Provident Fund" amount={currentPayslip.deductions?.pf} negative />
-                  {currentPayslip.deductions?.insurance > 0 && (
-                    <PayslipRow label="Insurance" amount={currentPayslip.deductions?.insurance} negative />
+                  {currentPayslip ? (
+                    <>
+                      <PayslipRow label="Income Tax" amount={displayData.deductions?.tax} negative />
+                      <PayslipRow label="Provident Fund" amount={displayData.deductions?.pf} negative />
+                    </>
+                  ) : (
+                    <PayslipRow label="Total Deductions" amount={displayData.totalDeductions} negative />
                   )}
+                  
                   <div style={{ borderTop: '1px solid var(--gray-200)', paddingTop: '12px', marginTop: '4px' }}>
-                    <PayslipRow label="Total Deductions" amount={currentPayslip.totalDeductions} bold negative />
+                    <PayslipRow label="Total Deductions" amount={displayData.totalDeductions} bold negative />
                   </div>
                 </div>
               </div>
