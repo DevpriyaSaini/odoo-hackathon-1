@@ -3122,3 +3122,214 @@ tbody tr:last-child td {
     font-size: 12px;
   }
 }
+
+/* ===== FIXED STYLES FOR ATTENDANCE & LEAVES ===== */
+
+/* Attendance Module */
+.attendance-page {
+  animation: pageSlideIn 0.35s ease-out;
+}
+
+.attendance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.attendance-controls {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.date-navigation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-btn {
+  background: transparent;
+  border: 1px solid var(--gray-200);
+  color: var(--gray-600);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: var(--primary-50);
+  color: var(--primary-600);
+  border-color: var(--primary-200);
+}
+
+.date-picker .input {
+  min-width: 150px;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.view-toggle {
+  display: flex;
+  background: var(--gray-100);
+  padding: 4px;
+  border-radius: 8px;
+  gap: 4px;
+}
+
+.toggle-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--gray-600);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: white;
+  color: var(--primary-700);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  font-weight: 600;
+}
+
+.summary-cards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 16px;
+  border-right: 1px solid var(--gray-200);
+  min-width: 80px;
+}
+
+.summary-card:last-child {
+  border-right: none;
+}
+
+.checkin-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.checked-out-badge {
+  background: var(--gray-100);
+  color: var(--gray-600);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: 1px solid var(--gray-200);
+}
+
+.attendance-table-container {
+  overflow-x: auto;
+}
+
+.time-cell, .hours-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.extra {
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* Leaves Module Improvements */
+.leaves-page {
+  animation: pageSlideIn 0.35s ease-out;
+}
+
+.leave-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); /* Improved responsiveness */
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.leave-tabs {
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.leave-tab {
+  white-space: nowrap;
+}
+
+.leaves-table-container {
+  overflow-x: auto;
+}
+
+/* Ensure empty states look good */
+.empty-row {
+  padding: 40px;
+  text-align: center;
+  color: var(--gray-500);
+}
+
+.empty-state-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-state-small span {
+  font-size: 24px;
+  opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .attendance-header, .leaves-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .attendance-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .date-navigation {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .summary-cards {
+    border-top: 1px solid var(--gray-200);
+    padding-top: 16px;
+    width: 100%;
+    justify-content: space-around;
+  }
+  
+  .summary-card {
+    border-right: none;
+    padding: 0;
+  }
+}

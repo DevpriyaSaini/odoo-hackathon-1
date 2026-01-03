@@ -6,7 +6,7 @@ import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
 import { leaveService } from '../services/api';
 
-import { leaveService } from '../services/api';
+
 
 export default function LeavesPage() {
   const { user, loading: authLoading } = useAuth();
@@ -50,8 +50,8 @@ export default function LeavesPage() {
       setLoading(true);
       let response;
       
-      let response;
-      if (isAdmin()) {
+
+      if (isAdmin) {
         response = await leaveService.getAll();
       } else {
         response = await leaveService.getMine();
@@ -107,23 +107,31 @@ export default function LeavesPage() {
     }
   };
 
-  const handleApprove = async (id) => {
-    try {
-      await leaveService.approve(id, 'Approved by admin');
-      fetchLeaves();
-    } catch (err) {
-      console.error(err);
-      setError('Failed to approve leave');
-    }
+  const openActionModal = (leave, type) => {
+    setSelectedLeave(leave);
+    setActionType(type);
+    setAdminComment('');
+    setIsActionModalOpen(true);
   };
 
-  const handleReject = async (id) => {
+  const handleAction = async () => {
     try {
-      await leaveService.reject(id, 'Rejected by admin');
+      setSubmitting(true);
+      if (actionType === 'approve') {
+        await leaveService.approve(selectedLeave._id, adminComment || 'Approved by admin');
+      } else {
+        await leaveService.reject(selectedLeave._id, adminComment || 'Rejected by admin');
+      }
+      
+      setSuccessMessage(`Leave request ${actionType}d successfully`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      setIsActionModalOpen(false);
       fetchLeaves();
     } catch (err) {
       console.error(err);
-      setError('Failed to reject leave');
+      setError(`Failed to ${actionType} leave`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -143,6 +151,11 @@ export default function LeavesPage() {
       case 'rejected': return 'status-rejected';
       default: return '';
     }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    return new Date(dateString).toLocaleDateString();
   };
 
   const filteredLeaves = leaves.filter(leave => {
