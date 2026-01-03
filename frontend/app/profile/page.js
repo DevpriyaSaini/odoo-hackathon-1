@@ -28,6 +28,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [profileExists, setProfileExists] = useState(true);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) {

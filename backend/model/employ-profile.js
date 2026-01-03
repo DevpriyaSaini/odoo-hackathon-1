@@ -47,11 +47,19 @@ const employeeProfileSchema = new mongoose.Schema(
 
     // Salary Structure (Admin only - not editable by employee)
     salaryStructure: {
-      basic: Number,
-      hra: Number,
-      allowances: Number,
-      deductions: Number,
-      netSalary: Number,
+      basic: { type: Number, default: 0 },
+      hra: { type: Number, default: 0 },
+      allowances: { type: Number, default: 0 },
+      standardAllowance: { type: Number, default: 0 },
+      performanceBonus: { type: Number, default: 0 },
+      leaveTravel: { type: Number, default: 0 },
+      fixedAllowance: { type: Number, default: 0 },
+      pfContribution: { type: Number, default: 0 },
+      professionalTax: { type: Number, default: 0 },
+      deductions: { type: Number, default: 0 },
+      netSalary: { type: Number, default: 0 },
+      workingDays: { type: Number, default: 22 },
+      workingHours: { type: Number, default: 8 },
     },
 
     // Documents

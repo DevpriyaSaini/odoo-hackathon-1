@@ -116,7 +116,7 @@ const CLOUDINARY_UPLOAD_PRESET = 'devpriyasaini';
 export const employeeService = {
   // Get all employees (admin only)
   getAll: async () => {
-    const response = await api.get('/employ-profile/profile');
+    const response = await api.get('/employ-profile/profiles');
     return response.data;
   },
 
