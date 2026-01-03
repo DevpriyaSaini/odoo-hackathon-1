@@ -76,9 +76,15 @@ export const authService = {
 // ============ EMPLOYEE AUTH SERVICES ============
 
 export const employeeAuthService = {
-  // Employee registration
+  // Employee registration (self-registration)
   register: async (data) => {
     const response = await api.post('/employ/register', data);
+    return response.data;
+  },
+
+  // Admin-only: Create new employee with auto-generated ID and password
+  createEmployee: async (data) => {
+    const response = await api.post('/employ/create', data);
     return response.data;
   },
 
