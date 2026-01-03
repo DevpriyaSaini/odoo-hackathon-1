@@ -51,36 +51,26 @@ export default function ProfilePage() {
       setError(null);
     } catch (err) {
       console.error('Error fetching profile:', err);
+      // If profile not found, just set empty state and don't show error
       if (err.response?.status === 404) {
         setProfileExists(false);
-        // Set default empty profile
         setProfile({
           employee: {
             Employname: user?.email?.split('@')[0] || 'User',
             email: user?.email,
             role: user?.role,
+            _id: user?.id 
           },
           phone: '',
           address: '',
           profilePicture: '',
-          dateOfBirth: '',
-          nationality: 'Indian',
-          gender: '',
-          maritalStatus: '',
-          personalEmail: '',
           jobDetails: {
-            designation: '',
-            department: '',
-            joiningDate: '',
+            designation: isAdmin ? 'Administrator' : 'Employee',
+            department: isAdmin ? 'Administration' : '',
+            joiningDate: new Date().toISOString(),
             employmentType: 'full-time',
           },
-          bankDetails: {
-            accountNumber: '',
-            bankName: '',
-            panNo: '',
-            uamNo: '',
-            empCode: '',
-          },
+          bankDetails: {},
           salaryStructure: {
             basic: 0,
             hra: 0,
@@ -88,11 +78,7 @@ export default function ProfilePage() {
             deductions: 0,
             netSalary: 0,
           },
-          documents: {
-            aadhaar: '',
-            pan: '',
-            resume: '',
-          },
+          documents: {},
         });
       } else {
         setError('Failed to load profile');

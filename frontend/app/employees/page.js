@@ -7,7 +7,7 @@ import Table from '../components/Table';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
-import { employeeAuthService } from '../services/api';
+import { employeeAuthService, employeeService } from '../services/api';
 
 // Cloudinary configuration
 const CLOUDINARY_CLOUD_NAME = 'dkpvhegme';
@@ -22,6 +22,11 @@ export default function EmployeesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Salary Modal State
+  const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
+  const [salaryData, setSalaryData] = useState({});
+  const [savingSalary, setSavingSalary] = useState(false);
   
   // Add employee form state
   const [formData, setFormData] = useState({
@@ -67,6 +72,91 @@ export default function EmployeesPage() {
       setLoading(false);
     }
   };
+
+  // --- Salary Management Logic ---
+
+  const openSalaryModal = async (emp) => {
+    setSelectedEmployee(emp);
+    
+    // Default empty structure
+    const defaultSalary = {
+      basic: 0, hra: 0, allowances: 0, deductions: 0,
+      standardAllowance: 0, performanceBonus: 0, leaveTravel: 0,
+      fixedAllowance: 0, pfContribution: 0, professionalTax: 0,
+      workingDays: 22, workingHours: 8,
+    };
+    
+    try {
+      // Try to fetch existing profile to get current salary
+      // Use employeeId if available, otherwise fall back to _id
+      const idToUse = emp.employeeId || emp._id;
+      const response = await employeeService.getById(idToUse);
+      
+      if (response.success && response.profile && response.profile.salaryStructure) {
+         setSalaryData({ ...defaultSalary, ...response.profile.salaryStructure });
+      } else {
+         setSalaryData(defaultSalary);
+      }
+    } catch (err) {
+      console.log('Profile not found or error, using defaults', err);
+      setSalaryData(defaultSalary);
+    }
+    
+    setIsSalaryModalOpen(true);
+  };
+
+  const handleSalaryChange = (field, value) => {
+    setSalaryData(prev => ({
+      ...prev,
+      [field]: parseFloat(value) || 0,
+    }));
+  };
+
+  const calculateGross = () => {
+    const { basic, hra, allowances, standardAllowance, performanceBonus, leaveTravel, fixedAllowance } = salaryData;
+    return (basic || 0) + (hra || 0) + (allowances || 0) + (standardAllowance || 0) + (performanceBonus || 0) + (leaveTravel || 0) + (fixedAllowance || 0);
+  };
+
+  const calculateDeductions = () => {
+    const { deductions, pfContribution, professionalTax } = salaryData;
+    return (deductions || 0) + (pfContribution || 0) + (professionalTax || 0);
+  };
+
+  const calculateNet = () => {
+    return calculateGross() - calculateDeductions();
+  };
+
+  const handleSaveSalary = async () => {
+    if (!selectedEmployee) return;
+
+    try {
+      setSavingSalary(true);
+      const netSalary = calculateNet();
+      
+      // Use employeeId if available, otherwise fall back to _id
+      const idToUse = selectedEmployee.employeeId || selectedEmployee._id;
+      
+      const response = await employeeService.adminUpdate(idToUse, {
+        salaryStructure: {
+          ...salaryData,
+          netSalary,
+        },
+      });
+
+      if (response.success) {
+        setSuccessMessage('Salary updated successfully!');
+        setIsSalaryModalOpen(false);
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to update salary:', err);
+      setFormError('Failed to update salary');
+    } finally {
+      setSavingSalary(false);
+    }
+  };
+
+  // ---------------------------
 
   // Handle image upload
   const handleImageSelect = async (e) => {
@@ -222,15 +312,29 @@ export default function EmployeesPage() {
     { 
       header: 'Actions', 
       render: (row) => (
-        <button 
-          className="btn btn-secondary btn-sm"
-          onClick={() => {
-            setSelectedEmployee(row);
-            setShowModal(true);
-          }}
-        >
-          View
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setSelectedEmployee(row);
+              setShowModal(true);
+            }}
+          >
+            View
+          </button>
+          {isAdmin() && (
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={() => openSalaryModal(row)}
+              title="Manage Salary"
+              style={{ padding: '6px 10px' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="16" height="16">
+                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </button>
+          )}
+        </div>
       )
     },
   ];
@@ -258,9 +362,15 @@ export default function EmployeesPage() {
         </button>
       </div>
 
-      {error && (
+      {(error || formError) && (
         <div className="alert alert-error" style={{ marginBottom: '24px' }}>
-          {error}
+          {error || formError}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div className="alert alert-success" style={{ marginBottom: '24px' }}>
+          {successMessage}
         </div>
       )}
 
@@ -566,6 +676,100 @@ export default function EmployeesPage() {
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* Salary Modal Logic */}
+      <Modal
+        isOpen={isSalaryModalOpen}
+        onClose={() => setIsSalaryModalOpen(false)}
+        title={`Salary Management - ${selectedEmployee?.Employname || 'Employee'}`}
+        size="lg"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setIsSalaryModalOpen(false)}>
+              Cancel
+            </button>
+            <button className="btn btn-primary" onClick={handleSaveSalary} disabled={savingSalary}>
+              {savingSalary ? <ButtonSpinner /> : null}
+              {savingSalary ? 'Saving...' : 'Save Salary'}
+            </button>
+          </>
+        }
+      >
+        <div className="salary-modal-content">
+          <div className="salary-summary-section" style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '13px', color: '#64748b' }}>Month Wage</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a' }}>₹{calculateNet().toLocaleString()}</div>
+              </div>
+              <div>
+                 <div style={{ fontSize: '13px', color: '#64748b' }}>Yearly Wage</div>
+                 <div style={{ fontSize: '18px', fontWeight: '600', color: '#334155' }}>₹{(calculateNet() * 12).toLocaleString()}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+              <div className="input-group">
+                  <label style={{ fontSize: '12px' }}>Working Days</label>
+                  <input type="number" className="input" style={{ width: '80px', padding: '4px 8px' }} value={salaryData.workingDays || 22} onChange={(e) => handleSalaryChange('workingDays', e.target.value)} />
+              </div>
+              <div className="input-group">
+                  <label style={{ fontSize: '12px' }}>Hours/Day</label>
+                  <input type="number" className="input" style={{ width: '80px', padding: '4px 8px' }} value={salaryData.workingHours || 8} onChange={(e) => handleSalaryChange('workingHours', e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div>
+              <h4 style={{ color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '8px', marginBottom: '16px' }}>Earnings</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="input-group">
+                  <label>Basic Salary</label>
+                  <input type="number" className="input" value={salaryData.basic || ''} onChange={(e) => handleSalaryChange('basic', e.target.value)} placeholder="0" />
+                </div>
+                <div className="input-group">
+                  <label>HRA</label>
+                  <input type="number" className="input" value={salaryData.hra || ''} onChange={(e) => handleSalaryChange('hra', e.target.value)} placeholder="0" />
+                </div>
+                <div className="input-group">
+                  <label>Allowances</label>
+                  <input type="number" className="input" value={salaryData.allowances || ''} onChange={(e) => handleSalaryChange('allowances', e.target.value)} placeholder="0" />
+                </div>
+                <div className="input-group">
+                  <label>Performance Bonus</label>
+                  <input type="number" className="input" value={salaryData.performanceBonus || ''} onChange={(e) => handleSalaryChange('performanceBonus', e.target.value)} placeholder="0" />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontWeight: '600' }}>
+                   <span>Gross</span>
+                   <span>₹{calculateGross().toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 style={{ color: '#ef4444', borderBottom: '2px solid #ef4444', paddingBottom: '8px', marginBottom: '16px' }}>Deductions</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="input-group">
+                  <label>Provident Fund</label>
+                  <input type="number" className="input" value={salaryData.pfContribution || ''} onChange={(e) => handleSalaryChange('pfContribution', e.target.value)} placeholder="0" />
+                </div>
+                <div className="input-group">
+                  <label>Professional Tax</label>
+                  <input type="number" className="input" value={salaryData.professionalTax || ''} onChange={(e) => handleSalaryChange('professionalTax', e.target.value)} placeholder="0" />
+                </div>
+                 <div className="input-group">
+                  <label>Other Deductions</label>
+                  <input type="number" className="input" value={salaryData.deductions || ''} onChange={(e) => handleSalaryChange('deductions', e.target.value)} placeholder="0" />
+                </div>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontWeight: '600' }}>
+                   <span>Total Ded.</span>
+                   <span>-₹{calculateDeductions().toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );

@@ -1,5 +1,6 @@
 import express from "express";
 import EmployeeProfile from "../model/employ-profile.js";
+import Employee from "../model/employ.js";
 import { protect, adminOnly } from "../middleware/auth.js";
 import { uploadProfile, deleteImage, getPublicIdFromUrl } from "../config/cloudinary.js";
 
@@ -204,26 +205,83 @@ EmployeeProfileRouter.put("/profile", protect, async (req, res) => {
   }
 });
 
-EmployeeProfileRouter.put(
-  "/profile/:employeeId",
+// Get specific employee profile (admin only)
+EmployeeProfileRouter.get(
+  "/profile/:id",
   protect,
   adminOnly,
   async (req, res) => {
     try {
-      const { employeeId } = req.params;
+      let userId = req.params.id;
 
-      const updatedProfile = await EmployeeProfile.findOneAndUpdate(
-        { employee: employeeId },
-        req.body,
-        { new: true }
-      );
+      // Check if it's a valid MongoDB ObjectId
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(userId);
 
-      if (!updatedProfile) {
+      if (!isMongoId) {
+        // Try finding employee by custom employeeId
+        const user = await Employee.findOne({ employeeId: userId });
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "Employee not found with this ID",
+          });
+        }
+        userId = user._id;
+      }
+
+      const profile = await EmployeeProfile.findOne({
+        employee: userId,
+      }).populate("employee", "Employname email role");
+
+      if (!profile) {
         return res.status(404).json({
           success: false,
           message: "Profile not found",
         });
       }
+
+      res.status(200).json({
+        success: true,
+        profile,
+      });
+    } catch (error) {
+      console.error("Get specific profile error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch profile",
+      });
+    }
+  }
+);
+
+EmployeeProfileRouter.put(
+  "/profile/:id",
+  protect,
+  adminOnly,
+  async (req, res) => {
+    try {
+      let userId = req.params.id;
+
+      // Check if it's a valid MongoDB ObjectId
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(userId);
+
+      if (!isMongoId) {
+        // Try finding employee by custom employeeId
+        const user = await Employee.findOne({ employeeId: userId });
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "Employee not found with this ID",
+          });
+        }
+        userId = user._id;
+      }
+
+      const updatedProfile = await EmployeeProfile.findOneAndUpdate(
+        { employee: userId },
+        req.body,
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
 
       res.status(200).json({
         success: true,
