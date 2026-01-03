@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import Card, { StatCard } from '../../components/Card';
 import StatusBadge from '../../components/StatusBadge';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { dashboardService, attendanceService, leaveService } from '../../services/api';
 
 // Icons
 const ClockIcon = () => (
@@ -54,27 +55,49 @@ export default function EmployeeDashboard() {
     }
   }, [authLoading, user]);
 
+
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // Mock data for now
-      setTodayStatus({
-        checkedIn: false,
-        checkInTime: null,
-        checkedOut: false,
-        checkOutTime: null,
-      });
+      
+      // Fetch attendance and leaves in parallel
+      const [attendanceRes, leavesRes, todayRes] = await Promise.all([
+        attendanceService.getMine({ limit: 100 }), // Get all attendance for count
+        leaveService.getMine(),
+        attendanceService.getToday()
+      ]);
+
+      if (todayRes.success) {
+        setTodayStatus({
+          checkedIn: !!todayRes.attendance?.checkInTime,
+          checkInTime: todayRes.attendance?.checkInTime 
+            ? new Date(todayRes.attendance.checkInTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            : null,
+          checkedOut: !!todayRes.attendance?.checkOutTime,
+          checkOutTime: todayRes.attendance?.checkOutTime
+             ? new Date(todayRes.attendance.checkOutTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+             : null,
+        });
+      }
+
+      // Calculate stats
+      const currentMonth = new Date().getMonth();
+      const daysPresent = attendanceRes.attendance?.filter(a => new Date(a.date).getMonth() === currentMonth).length || 0;
+      
+      const pendingLeaves = leavesRes.leaves?.filter(l => l.status === 'pending').length || 0;
+      const approvedLeaves = leavesRes.leaves?.filter(l => l.status === 'approved').length || 0;
 
       setStats({
-        daysPresent: 22,
-        pendingLeaves: 1,
-        approvedLeaves: 5,
+        daysPresent,
+        pendingLeaves,
+        approvedLeaves,
       });
 
       setError(null);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data');
+      // Don't show critical error for stats, just log
     } finally {
       setLoading(false);
     }
@@ -83,15 +106,12 @@ export default function EmployeeDashboard() {
   const handleCheckIn = async () => {
     try {
       setActionLoading(true);
-      // Call API - await attendanceService.checkIn();
-      const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      setTodayStatus(prev => ({
-        ...prev,
-        checkedIn: true,
-        checkInTime: now,
-      }));
+      const response = await attendanceService.checkIn();
+      if (response.success) {
+        await fetchDashboardData(); // Refresh data
+      }
     } catch (err) {
-      setError('Failed to check in');
+      setError(err.response?.data?.message || 'Failed to check in');
     } finally {
       setActionLoading(false);
     }
@@ -100,15 +120,12 @@ export default function EmployeeDashboard() {
   const handleCheckOut = async () => {
     try {
       setActionLoading(true);
-      // Call API - await attendanceService.checkOut();
-      const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      setTodayStatus(prev => ({
-        ...prev,
-        checkedOut: true,
-        checkOutTime: now,
-      }));
+      const response = await attendanceService.checkOut();
+      if (response.success) {
+        await fetchDashboardData(); // Refresh data
+      }
     } catch (err) {
-      setError('Failed to check out');
+      setError(err.response?.data?.message || 'Failed to check out');
     } finally {
       setActionLoading(false);
     }

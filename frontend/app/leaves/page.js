@@ -92,11 +92,11 @@ export default function LeavesPage() {
     try {
       setSubmitting(true);
       
-      const response = await leaveService.apply(formData);
+      const response = await leaveService.apply(applyData);
       
       if (response.success) {
-        setShowModal(false);
-        setFormData({ type: 'paid', startDate: '', endDate: '', reason: '' });
+        setIsApplyModalOpen(false);
+        setApplyData({ type: 'paid', startDate: '', endDate: '', reason: '' });
         fetchLeaves(); // Refresh list
       }
     } catch (err) {
