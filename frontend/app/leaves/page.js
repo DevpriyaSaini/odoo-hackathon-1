@@ -2,28 +2,42 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import Card, { StatCard } from '../components/Card';
-import Table from '../components/Table';
-import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
+import { leaveService } from '../services/api';
 
 import { leaveService } from '../services/api';
 
 export default function LeavesPage() {
-  const { user, loading: authLoading, isAdmin } = useAuth();
-  const [leaves, setLeaves] = useState([]);
-  const [summary, setSummary] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const { user, loading: authLoading } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(true);
+  const [leaves, setLeaves] = useState([]);
+  const [summary, setSummary] = useState({});
+  const [balance, setBalance] = useState(null);
   const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState({
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Modal states
+  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [selectedLeave, setSelectedLeave] = useState(null);
+  const [actionType, setActionType] = useState(null); // 'approve' or 'reject'
+  
+  // Form states
+  const [applyData, setApplyData] = useState({
     type: 'paid',
     startDate: '',
     endDate: '',
     reason: '',
   });
+  const [adminComment, setAdminComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('requests'); // 'requests' or 'allocation'
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -34,6 +48,7 @@ export default function LeavesPage() {
   const fetchLeaves = async () => {
     try {
       setLoading(true);
+      let response;
       
       let response;
       if (isAdmin()) {
@@ -66,7 +81,7 @@ export default function LeavesPage() {
       setError(null);
     } catch (err) {
       console.error('Error fetching leaves:', err);
-      setError('Failed to load leave data');
+      setError(err.response?.data?.message || 'Failed to load leave requests');
     } finally {
       setLoading(false);
     }
@@ -112,146 +127,391 @@ export default function LeavesPage() {
     }
   };
 
-  const columns = isAdmin() ? [
-    { header: 'Employee', render: (row) => row.employee?.Employname || '-' },
-    { header: 'Type', render: (row) => <StatusBadge status={row.type} /> },
-    { header: 'From', render: (row) => new Date(row.startDate).toLocaleDateString() },
-    { header: 'To', render: (row) => new Date(row.endDate).toLocaleDateString() },
-    { header: 'Days', accessor: 'duration' },
-    { header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
-    { 
-      header: 'Action', 
-      render: (row) => row.status === 'pending' ? (
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-success btn-sm" onClick={() => handleApprove(row.id)}>Approve</button>
-          <button className="btn btn-danger btn-sm" onClick={() => handleReject(row.id)}>Reject</button>
-        </div>
-      ) : null
-    },
-  ] : [
-    { header: 'Type', render: (row) => <StatusBadge status={row.type} /> },
-    { header: 'From', render: (row) => new Date(row.startDate).toLocaleDateString() },
-    { header: 'To', render: (row) => new Date(row.endDate).toLocaleDateString() },
-    { header: 'Days', accessor: 'duration' },
-    { header: 'Reason', accessor: 'reason' },
-    { header: 'Status', render: (row) => <StatusBadge status={row.status} /> },
-  ];
+  const getLeaveTypeLabel = (type) => {
+    const labels = {
+      paid: 'Paid Time Off',
+      sick: 'Sick Leave',
+      unpaid: 'Unpaid Leave',
+    };
+    return labels[type] || type;
+  };
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'pending': return 'status-pending';
+      case 'approved': return 'status-approved';
+      case 'rejected': return 'status-rejected';
+      default: return '';
+    }
+  };
+
+  const filteredLeaves = leaves.filter(leave => {
+    // Status filter
+    if (statusFilter !== 'all' && leave.status !== statusFilter) return false;
+    
+    // Search filter (admin only)
+    if (isAdmin && searchQuery) {
+      const name = leave.employeeId?.Employname || '';
+      const email = leave.employeeId?.email || '';
+      const query = searchQuery.toLowerCase();
+      return name.toLowerCase().includes(query) || email.toLowerCase().includes(query);
+    }
+    
+    return true;
+  });
 
   if (authLoading || loading) {
-    return <LoadingSpinner text="Loading leaves..." />;
+    return <LoadingSpinner text="Loading leave requests..." />;
   }
 
   return (
-    <div>
+    <div className="leaves-page">
       {/* Page Header */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1>{isAdmin() ? 'Leave Management' : 'My Leaves'}</h1>
-          <p>{isAdmin() ? 'Manage employee leave requests' : 'View and apply for leave'}</p>
+      <div className="leaves-header">
+        <div className="header-left">
+          <h1 className="page-title">Time Off</h1>
+          {isAdmin && <span className="admin-badge">Admin View</span>}
         </div>
-        {!isAdmin() && (
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-            + Apply for Leave
+        
+        {!isAdmin && (
+          <button 
+            className="btn btn-primary"
+            onClick={() => setIsApplyModalOpen(true)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="18" height="18">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Apply for Leave
           </button>
         )}
       </div>
 
+      {successMessage && (
+        <div className="alert alert-success">{successMessage}</div>
+      )}
+      
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '24px' }}>
+        <div className="alert alert-error">
           {error}
+          <button onClick={() => setError(null)} style={{ marginLeft: '16px' }}>×</button>
         </div>
       )}
 
-      {/* Summary Stats */}
-      <div className="stats-grid" style={{ marginBottom: '24px' }}>
-        <StatCard 
-          title="Pending" 
-          value={summary.pending} 
-          iconColor="yellow"
-          icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="24" height="24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>}
-        />
-        <StatCard 
-          title="Approved" 
-          value={summary.approved} 
-          iconColor="green"
-          icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="24" height="24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>}
-        />
-        <StatCard 
-          title="Rejected" 
-          value={summary.rejected} 
-          iconColor="red"
-          icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width="24" height="24"><path strokeLinecap="round" strokeLinejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>}
-        />
+      {/* Tabs for Admin */}
+      {isAdmin && (
+        <div className="leave-tabs">
+          <button 
+            className={`leave-tab ${activeTab === 'requests' ? 'active' : ''}`}
+            onClick={() => setActiveTab('requests')}
+          >
+            Time Off Requests
+          </button>
+          <button 
+            className={`leave-tab ${activeTab === 'allocation' ? 'active' : ''}`}
+            onClick={() => setActiveTab('allocation')}
+          >
+            Allocation
+          </button>
+        </div>
+      )}
+
+      {/* Leave Balance Cards (Employee) / Summary Cards (Admin) */}
+      <div className="leave-summary-grid">
+        {isAdmin ? (
+          <>
+            <div className="leave-summary-card pending">
+              <div className="summary-icon">⏳</div>
+              <div className="summary-info">
+                <span className="summary-count">{summary.pending || 0}</span>
+                <span className="summary-label">Pending</span>
+              </div>
+            </div>
+            <div className="leave-summary-card approved">
+              <div className="summary-icon">✓</div>
+              <div className="summary-info">
+                <span className="summary-count">{summary.approved || 0}</span>
+                <span className="summary-label">Approved</span>
+              </div>
+            </div>
+            <div className="leave-summary-card rejected">
+              <div className="summary-icon">✗</div>
+              <div className="summary-info">
+                <span className="summary-count">{summary.rejected || 0}</span>
+                <span className="summary-label">Rejected</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="leave-balance-card paid">
+              <h4>Paid Time Off</h4>
+              <div className="balance-value">{balance?.paid ?? user?.leaveBalance?.paid ?? 12} Days Available</div>
+            </div>
+            <div className="leave-balance-card sick">
+              <h4>Sick Leave</h4>
+              <div className="balance-value">{balance?.sick ?? user?.leaveBalance?.sick ?? 6} Days Available</div>
+            </div>
+            <div className="leave-balance-card unpaid">
+              <h4>Unpaid Leave</h4>
+              <div className="balance-value">Unlimited</div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Leave Requests Table */}
-      <Table 
-        columns={columns} 
-        data={leaves} 
-        emptyMessage="No leave requests found"
-      />
+      {/* Controls Bar */}
+      <div className="leave-controls">
+        <div className="status-filters">
+          <button 
+            className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('all')}
+          >
+            All
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'pending' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('pending')}
+          >
+            Pending
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'approved' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('approved')}
+          >
+            Approved
+          </button>
+          <button 
+            className={`filter-btn ${statusFilter === 'rejected' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('rejected')}
+          >
+            Rejected
+          </button>
+        </div>
 
-      {/* Apply Leave Modal */}
+        {isAdmin && (
+          <div className="search-box">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" width="18" height="18">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search employee..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Leaves Table */}
+      <div className="leaves-table-container">
+        <table className="leaves-table">
+          <thead>
+            <tr>
+              {isAdmin && <th>Employee</th>}
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Type</th>
+              <th>Days</th>
+              <th>Status</th>
+              {isAdmin && <th>Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredLeaves.length > 0 ? (
+              filteredLeaves.map((leave) => (
+                <tr key={leave._id}>
+                  {isAdmin && (
+                    <td className="employee-cell">
+                      <div className="employee-info-cell">
+                        <div className="emp-avatar-small">
+                          {leave.employeeId?.Employname?.charAt(0) || 'E'}
+                        </div>
+                        <span>{leave.employeeId?.Employname || 'Unknown'}</span>
+                      </div>
+                    </td>
+                  )}
+                  <td>{formatDate(leave.startDate)}</td>
+                  <td>{formatDate(leave.endDate)}</td>
+                  <td>
+                    <span className={`leave-type-badge ${leave.type}`}>
+                      {getLeaveTypeLabel(leave.type)}
+                    </span>
+                  </td>
+                  <td className="days-cell">{leave.duration} day(s)</td>
+                  <td>
+                    <span className={`status-badge ${getStatusBadgeClass(leave.status)}`}>
+                      {leave.status}
+                    </span>
+                  </td>
+                  {isAdmin && (
+                    <td className="actions-cell">
+                      {leave.status === 'pending' ? (
+                        <div className="action-buttons">
+                          <button 
+                            className="btn btn-sm btn-success"
+                            onClick={() => openActionModal(leave, 'approve')}
+                            title="Approve"
+                          >
+                            ✓
+                          </button>
+                          <button 
+                            className="btn btn-sm btn-danger"
+                            onClick={() => openActionModal(leave, 'reject')}
+                            title="Reject"
+                          >
+                            ✗
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="processed-badge">Processed</span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={isAdmin ? 7 : 5} className="empty-row">
+                  <div className="empty-state-small">
+                    <span>📋</span>
+                    <p>No leave requests found</p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Apply Leave Modal (Employee) */}
       <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
+        isOpen={isApplyModalOpen}
+        onClose={() => setIsApplyModalOpen(false)}
         title="Apply for Leave"
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
+            <button className="btn btn-secondary" onClick={() => setIsApplyModalOpen(false)}>
               Cancel
             </button>
             <button className="btn btn-primary" onClick={handleApply} disabled={submitting}>
               {submitting ? <ButtonSpinner /> : null}
-              {submitting ? 'Submitting...' : 'Submit Request'}
+              {submitting ? 'Submitting...' : 'Submit Application'}
             </button>
           </>
         }
       >
-        <form style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <form onSubmit={handleApply} className="leave-form">
           <div className="input-group">
-            <label>Leave Type</label>
+            <label>Leave Type <span className="required">*</span></label>
             <select
               className="input"
-              value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              value={applyData.type}
+              onChange={(e) => setApplyData({ ...applyData, type: e.target.value })}
+              required
             >
-              <option value="paid">Paid Leave</option>
+              <option value="paid">Paid Time Off</option>
               <option value="sick">Sick Leave</option>
               <option value="unpaid">Unpaid Leave</option>
             </select>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+
+          <div className="date-range-inputs">
             <div className="input-group">
-              <label>Start Date</label>
+              <label>Start Date <span className="required">*</span></label>
               <input
                 type="date"
                 className="input"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                value={applyData.startDate}
+                onChange={(e) => setApplyData({ ...applyData, startDate: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
+                required
               />
             </div>
             <div className="input-group">
-              <label>End Date</label>
+              <label>End Date <span className="required">*</span></label>
               <input
                 type="date"
                 className="input"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                value={applyData.endDate}
+                onChange={(e) => setApplyData({ ...applyData, endDate: e.target.value })}
+                min={applyData.startDate || new Date().toISOString().split('T')[0]}
+                required
               />
             </div>
           </div>
+
           <div className="input-group">
-            <label>Reason</label>
+            <label>Remarks <span className="required">*</span></label>
             <textarea
               className="input"
-              rows={3}
-              value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+              rows={4}
               placeholder="Please provide a reason for your leave request..."
+              value={applyData.reason}
+              onChange={(e) => setApplyData({ ...applyData, reason: e.target.value })}
+              required
             />
           </div>
         </form>
+      </Modal>
+
+      {/* Approve/Reject Modal (Admin) */}
+      <Modal
+        isOpen={isActionModalOpen}
+        onClose={() => setIsActionModalOpen(false)}
+        title={actionType === 'approve' ? 'Approve Leave Request' : 'Reject Leave Request'}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setIsActionModalOpen(false)}>
+              Cancel
+            </button>
+            <button 
+              className={`btn ${actionType === 'approve' ? 'btn-success' : 'btn-danger'}`}
+              onClick={handleAction}
+              disabled={submitting}
+            >
+              {submitting ? <ButtonSpinner /> : null}
+              {submitting ? 'Processing...' : (actionType === 'approve' ? 'Approve' : 'Reject')}
+            </button>
+          </>
+        }
+      >
+        <div className="action-modal-content">
+          {selectedLeave && (
+            <div className="leave-details-summary">
+              <div className="detail-item">
+                <span className="label">Employee:</span>
+                <span className="value">{selectedLeave.employeeId?.Employname || 'Unknown'}</span>
+              </div>
+              <div className="detail-item">
+                <span className="label">Type:</span>
+                <span className="value">{getLeaveTypeLabel(selectedLeave.type)}</span>
+              </div>
+              <div className="detail-item">
+                <span className="label">Duration:</span>
+                <span className="value">
+                  {formatDate(selectedLeave.startDate)} - {formatDate(selectedLeave.endDate)} ({selectedLeave.duration} days)
+                </span>
+              </div>
+              <div className="detail-item">
+                <span className="label">Reason:</span>
+                <span className="value reason">{selectedLeave.reason}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="input-group">
+            <label>Comments (for Employee)</label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder={actionType === 'approve' ? 'Add approval note...' : 'Reason for rejection...'}
+              value={adminComment}
+              onChange={(e) => setAdminComment(e.target.value)}
+            />
+          </div>
+        </div>
       </Modal>
     </div>
   );

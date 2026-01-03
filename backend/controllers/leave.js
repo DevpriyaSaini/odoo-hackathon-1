@@ -115,10 +115,13 @@ leaveRouter.get("/me", protect, async (req, res) => {
       { pending: 0, approved: 0, rejected: 0 }
     );
 
+    const employee = await Employmodel.findById(employeeId).select('leaveBalance');
+
     return res.status(200).json({
       success: true,
       count: leaves.length,
       summary,
+      balance: employee?.leaveBalance,
       leaves,
     });
   } catch (error) {
@@ -143,8 +146,14 @@ leaveRouter.get("/all", protect, adminOnly, async (req, res) => {
     if (employeeId) query.employeeId = employeeId;
     if (startDate || endDate) {
       query.startDate = {};
-      if (startDate) query.startDate.$gte = new Date(startDate);
-      if (endDate) query.startDate.$lte = new Date(endDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        if (!isNaN(start)) query.startDate.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        if (!isNaN(end)) query.startDate.$lte = end;
+      }
     }
 
     const leaves = await Leave.find(query)
@@ -169,7 +178,7 @@ leaveRouter.get("/all", protect, adminOnly, async (req, res) => {
     console.error("Error fetching all leaves:", error);
     return res.status(500).json({
       success: false,
-      message: "Error fetching leaves",
+      message: error.message || "Error fetching leaves",
     });
   }
 });

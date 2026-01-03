@@ -6,7 +6,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { attendanceService } from '../services/api';
 
 export default function AttendancePage() {
-  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [attendanceData, setAttendanceData] = useState([]);
