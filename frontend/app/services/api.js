@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Backend API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 // Create axios instance
 const api = axios.create({
@@ -116,7 +116,7 @@ const CLOUDINARY_UPLOAD_PRESET = 'devpriyasaini';
 export const employeeService = {
   // Get all employees (admin only)
   getAll: async () => {
-    const response = await api.get('/employ-profile/profile');
+    const response = await api.get('/employ-profile/profiles');
     return response.data;
   },
 
