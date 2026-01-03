@@ -1,13 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authService } from '../../services/api';
 import { ButtonSpinner } from '../../components/LoadingSpinner';
 
+// Cloudinary configuration
+const CLOUDINARY_CLOUD_NAME = 'dkpvhegme';
+const CLOUDINARY_UPLOAD_PRESET = 'devpriyasaini';
+
 export default function RegisterPage() {
   const router = useRouter();
+  const fileInputRef = useRef(null);
   const [formData, setFormData] = useState({
     Adminname: '',
     email: '',
@@ -16,6 +21,8 @@ export default function RegisterPage() {
     image: '',
   });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
@@ -24,12 +31,76 @@ export default function RegisterPage() {
     setError('');
   };
 
+  // Handle image file selection
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setError('Please select a valid image file (JPG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB');
+      return;
+    }
+
+    setError('');
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to Cloudinary
+    try {
+      setUploading(true);
+      
+      const cloudinaryFormData = new FormData();
+      cloudinaryFormData.append('file', file);
+      cloudinaryFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      cloudinaryFormData.append('folder', 'dayflow/profiles');
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: cloudinaryFormData,
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to upload image');
+      }
+
+      const data = await response.json();
+      setFormData(prev => ({ ...prev, image: data.secure_url }));
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError('Failed to upload image. Please try again.');
+      setImagePreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validation
     if (!formData.Adminname || !formData.email || !formData.password || !formData.image) {
-      setError('Please fill in all required fields');
+      setError('Please fill in all required fields including profile photo');
       return;
     }
 
@@ -93,6 +164,120 @@ export default function RegisterPage() {
 
         {/* Form */}
         <form className="auth-form" onSubmit={handleSubmit}>
+          {/* Profile Photo Upload */}
+          <div className="input-group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
+            <label style={{ marginBottom: '12px' }}>Profile Photo *</label>
+            
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={handleImageSelect}
+              style={{ display: 'none' }}
+            />
+            
+            {/* Profile picture preview/upload button */}
+            <div
+              onClick={!uploading && !loading ? triggerFileSelect : undefined}
+              style={{
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                background: imagePreview 
+                  ? `url(${imagePreview}) center/cover no-repeat`
+                  : 'linear-gradient(135deg, var(--gray-100), var(--gray-200))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: uploading || loading ? 'not-allowed' : 'pointer',
+                border: '3px dashed var(--gray-300)',
+                transition: 'all 0.3s ease',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Upload icon or loading */}
+              {uploading ? (
+                <div 
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    border: '3px solid var(--gray-300)',
+                    borderTopColor: 'var(--primary-500)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                />
+              ) : !imagePreview ? (
+                <svg 
+                  width="32" 
+                  height="32" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="var(--gray-400)" 
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              ) : (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'rgba(0, 0, 0, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease',
+                  }}
+                  className="upload-overlay"
+                >
+                  <svg 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="white" 
+                    strokeWidth="2"
+                  >
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            
+            <p style={{ 
+              fontSize: '12px', 
+              color: 'var(--gray-500)', 
+              marginTop: '8px',
+              textAlign: 'center',
+            }}>
+              {uploading ? 'Uploading...' : formData.image ? 'Click to change photo' : 'Click to upload photo'}
+            </p>
+            
+            {formData.image && !uploading && (
+              <span style={{ 
+                fontSize: '12px', 
+                color: 'var(--success)', 
+                marginTop: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Photo uploaded
+              </span>
+            )}
+          </div>
+
           <div className="input-group">
             <label htmlFor="Adminname">Full Name *</label>
             <input
@@ -116,20 +301,6 @@ export default function RegisterPage() {
               className="input"
               placeholder="you@iitjammu.ac.in"
               value={formData.email}
-              onChange={handleChange}
-              disabled={loading}
-            />
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="image">Profile Image URL *</label>
-            <input
-              type="url"
-              id="image"
-              name="image"
-              className="input"
-              placeholder="https://example.com/your-photo.jpg"
-              value={formData.image}
               onChange={handleChange}
               disabled={loading}
             />
@@ -167,7 +338,7 @@ export default function RegisterPage() {
             type="submit" 
             className="btn btn-primary btn-lg" 
             style={{ width: '100%', marginTop: '8px' }}
-            disabled={loading}
+            disabled={loading || uploading}
           >
             {loading ? <ButtonSpinner /> : null}
             {loading ? 'Creating account...' : 'Create Account'}
@@ -179,6 +350,18 @@ export default function RegisterPage() {
           Already have an account? <Link href="/auth/login">Sign in</Link>
         </div>
       </div>
+
+      {/* CSS for animations */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        div:hover > .upload-overlay {
+          opacity: 1 !important;
+        }
+      `}</style>
     </div>
   );
 }

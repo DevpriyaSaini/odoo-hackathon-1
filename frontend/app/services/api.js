@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Backend API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
 
 // Create axios instance
 const api = axios.create({
@@ -103,6 +103,10 @@ export const employeeAuthService = {
 
 // ============ EMPLOYEE SERVICES ============
 
+// Cloudinary configuration for direct uploads
+const CLOUDINARY_CLOUD_NAME = 'dkpvhegme';
+const CLOUDINARY_UPLOAD_PRESET = 'devpriyasaini';
+
 export const employeeService = {
   // Get all employees (admin only)
   getAll: async () => {
@@ -116,12 +120,71 @@ export const employeeService = {
     return response.data;
   },
 
+  // Create employee profile
+  createProfile: async (data) => {
+    const response = await api.post('/employ-profile/profile', data);
+    return response.data;
+  },
+
   // Update employee profile
   update: async (id, data) => {
     const response = await api.put('/employ-profile/profile', data);
     return response.data;
   },
-}
+
+  // Upload profile picture directly to Cloudinary, then update backend
+  uploadProfilePicture: async (file) => {
+    try {
+      // Step 1: Upload directly to Cloudinary using upload preset
+      const cloudinaryFormData = new FormData();
+      cloudinaryFormData.append('file', file);
+      cloudinaryFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+      cloudinaryFormData.append('folder', 'dayflow/profiles');
+      
+      const cloudinaryResponse = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: 'POST',
+          body: cloudinaryFormData,
+        }
+      );
+      
+      if (!cloudinaryResponse.ok) {
+        const errorData = await cloudinaryResponse.json();
+        throw new Error(errorData.error?.message || 'Failed to upload image to Cloudinary');
+      }
+      
+      const cloudinaryData = await cloudinaryResponse.json();
+      const imageUrl = cloudinaryData.secure_url;
+      
+      // Step 2: Try to update the profile, if it fails (404), create a new one
+      let response;
+      try {
+        response = await api.put('/employ-profile/profile', {
+          profilePicture: imageUrl,
+        });
+      } catch (updateError) {
+        // If profile doesn't exist, create it
+        if (updateError.response?.status === 404) {
+          response = await api.post('/employ-profile/profile', {
+            profilePicture: imageUrl,
+          });
+        } else {
+          throw updateError;
+        }
+      }
+      
+      return {
+        success: true,
+        profilePicture: imageUrl,
+        profile: response.data.profile,
+      };
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+  },
+};
 // ============ ATTENDANCE SERVICES ============
 
 export const attendanceService = {
@@ -240,4 +303,39 @@ export const dashboardService = {
   },
 };
 
+// ============ UPLOAD SERVICES ============
+
+export const uploadService = {
+  // Upload profile picture
+  uploadProfile: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await api.post('/upload/profile', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Upload document
+  uploadDocument: async (file) => {
+    const formData = new FormData();
+    formData.append('document', file);
+    const response = await api.post('/upload/document', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Delete uploaded file
+  deleteFile: async (url, publicId) => {
+    const response = await api.delete('/upload', { data: { url, publicId } });
+    return response.data;
+  },
+};
+
 export default api;
+

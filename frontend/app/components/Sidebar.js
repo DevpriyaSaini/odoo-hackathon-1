@@ -53,6 +53,7 @@ const adminNavItems = [
   { href: '/attendance', label: 'Attendance', icon: ClockIcon },
   { href: '/leaves', label: 'Leave Requests', icon: CalendarIcon },
   { href: '/payroll', label: 'Payroll', icon: WalletIcon },
+  { href: '/profile', label: 'My Profile', icon: UserIcon },
 ];
 
 const employeeNavItems = [
