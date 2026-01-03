@@ -5,13 +5,9 @@ import nodemailer from "nodemailer";
 import Employmodel from "../model/employ.js";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
-
 dotenv.config();
 
-const router = express.Router();
-
-
-
+// MAILER SETUP
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -21,41 +17,52 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendOtpMail(name, email, otp) {
-  const mailOptions = {
-    from: process.env.GMAIL_USER,
-    to: email,
-    subject: "Verify Your Email - Employ Portal",
-    html: `
-      <h2>Welcome, ${name} 🎓</h2>
-      <p>Your OTP for email verification is:</p>
-      <h3 style="color:blue;">${otp}</h3>
-      <p>This OTP is valid for <b>10 minutes</b>.</p>
-    `,
-  };
+  try {
+    const mailOptions = {
+      from: process.env.GMAIL_USER,
+      to: email,
+      subject: `Verify Your Email - Employee Portal`,
+      html: `
+        <h2>Welcome, ${name} 🎓</h2>
+        <p>To complete your registration, please use the OTP below:</p>
+        <h3 style="color:blue; font-size:22px;">${otp}</h3>
+        <p>This OTP is valid for <b>10 minutes</b>. If you did not request this, please ignore.</p>
+      `,
+    };
 
-  return transporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("📧 Email sent:", info.response);
+    return info;
+  } catch (error) {
+    console.error("Email send error:", error);
+    throw error;
+  }
 }
 
-
-
-function generateToken(user) {
+// JWT GENERATOR
+function generateToken(employee) {
   if (!process.env.JWT_SECRET) {
     throw new Error("JWT_SECRET is not set");
   }
 
   return jwt.sign(
     {
-      id: user._id,
-      email: user.email,
-      role: user.role,
+      id: employee._id,
+      email: employee.email,
+      role: employee.role,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }
   );
 }
 
+const employRouter = express.Router();
 
-router.post("/register", async (req, res) => {
+/**
+ * POST /employ/register
+ * Register new employee
+ */
+employRouter.post("/register", async (req, res) => {
   try {
     const { Employname, email, password, image } = req.body;
 
@@ -67,56 +74,66 @@ router.post("/register", async (req, res) => {
     }
 
     const otp = crypto.randomInt(100000, 999999).toString();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
 
-    let user = await Employmodel.findOne({ email });
+    let employee = await Employmodel.findOne({ email });
 
-    if (user) {
-      if (user.isVerified) {
+    if (employee) {
+      if (employee.isVerified) {
         return res.status(400).json({
           success: false,
-          message: "Employ already exists",
+          message: "Employee already exists",
+        });
+      } else {
+        // Update details & resend OTP
+        employee.Employname = Employname;
+        employee.password = password;
+        employee.image = image;
+        employee.VerifyCode = otp;
+        employee.VerifyCodeExpiry = otpExpiry;
+
+        await employee.save();
+        await sendOtpMail(Employname, email, otp);
+
+        return res.status(200).json({
+          success: true,
+          message: "OTP resent. Please verify your email.",
+          userId: employee._id,
         });
       }
+    } else {
+      employee = await Employmodel.create({
+        Employname,
+        email,
+        password,
+        image,
+        isVerified: false,
+        VerifyCode: otp,
+        VerifyCodeExpiry: otpExpiry,
+      });
 
-      user.Employname = Employname;
-      user.password = password;
-      user.image = image;
-      user.VerifyCode = otp;
-
-      await user.save();
       await sendOtpMail(Employname, email, otp);
 
       return res.status(200).json({
         success: true,
-        message: "OTP resent. Please verify your email.",
+        message: "Employee registered successfully. OTP sent to email.",
+        userId: employee._id,
       });
     }
-
-    user = await Employmodel.create({
-      Employname,
-      email,
-      password,
-      image,
-      VerifyCode: otp,
-    });
-
-    await sendOtpMail(Employname, email, otp);
-
-    res.status(201).json({
-      success: true,
-      message: "Employ registered. OTP sent to email.",
-    });
   } catch (error) {
-    console.error("Register error:", error);
-    res.status(500).json({
+    console.error("Error during employee registration:", error);
+    return res.status(500).json({
       success: false,
-      message: "Registration failed",
+      message: "Error registering employee",
     });
   }
 });
 
-
-router.put("/verify-otp", async (req, res) => {
+/**
+ * PUT /employ/verify-otp
+ * Verify OTP for employee
+ */
+employRouter.put("/verify-otp", async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -127,55 +144,75 @@ router.put("/verify-otp", async (req, res) => {
       });
     }
 
-    const user = await Employmodel.findOne({ email });
-    if (!user) {
+    const employee = await Employmodel.findOne({ email });
+    if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Employ not found",
+        message: "Employee not found",
       });
     }
 
-    if (user.VerifyCode !== otp) {
+    if (employee.isVerified) {
+      const token = generateToken(employee);
+      return res.status(200).json({
+        success: true,
+        message: "Employee already verified",
+        token,
+      });
+    }
+
+    if (employee.VerifyCode?.toString() !== otp.toString()) {
       return res.status(400).json({
         success: false,
-        message: "Invalid OTP",
+        message: "Invalid or expired OTP",
       });
     }
 
-    user.isVerified = true;
-    user.VerifyCode = undefined;
-    await user.save();
+    employee.isVerified = true;
+    employee.VerifyCode = undefined;
+    employee.VerifyCodeExpiry = undefined;
+    await employee.save();
 
-    const token = generateToken(user);
+    const token = generateToken(employee);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Email verified successfully",
       token,
     });
   } catch (error) {
-    console.error("OTP verification error:", error);
-    res.status(500).json({
+    console.error("Error verifying employee OTP:", error);
+    return res.status(500).json({
       success: false,
-      message: "OTP verification failed",
+      message: "Error verifying OTP",
     });
   }
 });
 
-
-router.post("/login", async (req, res) => {
+/**
+ * POST /employ/login
+ * Employee login
+ */
+employRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await Employmodel.findOne({ email });
-    if (!user) {
-      return res.status(404).json({
+    if (!email || !password) {
+      return res.status(400).json({
         success: false,
-        message: "Employ not found",
+        message: "Email and password are required",
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const employee = await Employmodel.findOne({ email });
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, employee.password);
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -183,48 +220,47 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    if (!user.isVerified) {
+    if (!employee.isVerified) {
       return res.status(403).json({
         success: false,
-        message: "Email not verified",
+        message: "Email not verified. Please verify with OTP.",
       });
     }
 
-    const token = generateToken(user);
+    const token = generateToken(employee);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Login successful",
       token,
     });
   } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({
+    console.error("Error logging in employee:", error);
+    return res.status(500).json({
       success: false,
-      message: "Login failed",
+      message: "Error logging in",
     });
   }
 });
 
-
-router.get("/all-employs", async (req, res) => {
+/**
+ * GET /employ/all
+ * Get all employees (for admin reference)
+ */
+employRouter.get("/all", async (req, res) => {
   try {
-    const employs = await Employmodel.find(
-      {},
-      "-password -VerifyCode"
-    );
-
-    res.status(200).json({
+    const employees = await Employmodel.find({}, '-password -VerifyCode -VerifyCodeExpiry');
+    return res.status(200).json({
       success: true,
-      employs,
+      employees,
     });
   } catch (error) {
-    console.error("Fetch error:", error);
-    res.status(500).json({
+    console.error("Error fetching employees:", error);
+    return res.status(500).json({
       success: false,
-      message: "Error fetching employs",
+      message: "Error fetching employees",
     });
   }
 });
 
-export default router;
+export default employRouter;

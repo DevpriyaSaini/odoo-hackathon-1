@@ -1,24 +1,28 @@
-import express, { Router } from "express";
-import adminRoutes from "./controllers/admin.js";
-import employRoutes from "./controllers/employ.js";
-const app = express();
-const PORT = process.env.PORT || 4000;
+import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import 'dotenv/config';
 
+// Import routes
+import adminRoutes from "./controllers/admin.js";
+import employRoutes from "./controllers/employ.js";
+import employProfileRoutes from "./controllers/employ-profile.js";
+import attendanceRoutes from "./controllers/attendance.js";
+import leaveRoutes from "./controllers/leave.js";
+import payrollRoutes from "./controllers/payroll.js";
 
+const app = express();
+// Change this line temporarily to test
+const PORT = process.env.PORT || 4001;
+const mongoUrl = process.env.MONGO_URL || "";
 
-
-
-const mongoUrl=process.env.MONGO_URL||"";
-
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS Configuration - MUST be before routes
+// CORS Configuration
 app.use(cors({
-  origin: [ 'http://localhost:3000', 'http://localhost:4000'],
+  origin: ['http://localhost:3000', 'http://localhost:4000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -35,33 +39,31 @@ app.use((_req, res, next) => {
   next();
 });
 
-const connectdb=async ()=>{
-   try {
+// Database connection
+const connectdb = async () => {
+  try {
     await mongoose.connect(mongoUrl);
-    console.log("mongo connected");
-
-    // Start cron jobs after database connection (with error handling)
-    try {
-      
-      console.log("✅ Cron jobs initialization completed");
-    } catch (cronError) {
-      console.error("⚠️ Cron jobs failed to start, but server will continue:", cronError.message);
-      // Server continues even if cron fails
-    }
-
-   } catch (error) {
+    console.log("✅ MongoDB connected");
+  } catch (error) {
     console.log("❌ Database connection error:", error);
-   }
+  }
 }
-app.use("/admin",adminRoutes)
-app.use("/employ",employRoutes)
-app.use("/employ-profile",employProfileRoutes)
 
+// Routes
+app.use("/admin", adminRoutes);
+app.use("/employ", employRoutes);
+app.use("/employ-profile", employProfileRoutes);
+app.use("/attendance", attendanceRoutes);
+app.use("/leaves", leaveRoutes);
+app.use("/payroll", payrollRoutes);
 
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 connectdb();
 
-
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Dayflow HRMS Server running on port ${PORT}`);
 });
