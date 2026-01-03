@@ -10,6 +10,7 @@ import employProfileRoutes from "./controllers/employ-profile.js";
 import attendanceRoutes from "./controllers/attendance.js";
 import leaveRoutes from "./controllers/leave.js";
 import payrollRoutes from "./controllers/payroll.js";
+import uploadRoutes from "./controllers/upload.js";
 
 const app = express();
 // Change this line temporarily to test
@@ -56,6 +57,7 @@ app.use("/employ-profile", employProfileRoutes);
 app.use("/attendance", attendanceRoutes);
 app.use("/leaves", leaveRoutes);
 app.use("/payroll", payrollRoutes);
+app.use("/upload", uploadRoutes);
 
 // Health check
 app.get("/health", (req, res) => {

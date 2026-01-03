@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
@@ -16,6 +16,12 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
+  
+  // Profile picture upload states
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -26,30 +32,50 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      // Mock profile data for now
+      
+      // Try to fetch real profile from API
+      try {
+        const response = await employeeService.getProfile();
+        if (response.success && response.profile) {
+          setProfile({
+            _id: response.profile._id,
+            Employname: response.profile.employee?.Employname || user?.email?.split('@')[0] || 'User',
+            email: response.profile.employee?.email || user?.email,
+            role: response.profile.employee?.role || user?.role,
+            phone: response.profile.phone || '',
+            department: response.profile.jobDetails?.department || 'Not Assigned',
+            position: response.profile.jobDetails?.designation || 'Not Assigned',
+            joiningDate: response.profile.jobDetails?.joiningDate || new Date().toISOString(),
+            employmentType: response.profile.jobDetails?.employmentType || 'full-time',
+            status: 'active',
+            profilePicture: response.profile.profilePicture || '',
+            address: response.profile.address || '',
+          });
+          setError(null);
+          return;
+        }
+      } catch (apiError) {
+        console.log('No profile found, using defaults:', apiError);
+      }
+      
+      // Fallback to mock data if no profile exists
       setProfile({
         _id: user?.id,
         Employname: user?.email?.split('@')[0] || 'User',
         email: user?.email,
         role: user?.role,
-        phone: '+91 9876543210',
-        department: 'Engineering',
-        position: 'Software Developer',
-        joiningDate: '2024-01-15',
+        phone: '',
+        department: 'Not Assigned',
+        position: 'Not Assigned',
+        joiningDate: new Date().toISOString(),
         employmentType: 'full-time',
         status: 'active',
-        image: '',
-        address: {
-          street: '123 Main Street',
-          city: 'Jammu',
-          state: 'Jammu & Kashmir',
-          pincode: '180001',
-          country: 'India',
-        },
+        profilePicture: '',
+        address: '',
         emergencyContact: {
-          name: 'Jane Doe',
-          phone: '+91 9876543211',
-          relation: 'Spouse',
+          name: '',
+          phone: '',
+          relation: '',
         },
         leaveBalance: {
           paid: 12,
@@ -66,12 +92,72 @@ export default function ProfilePage() {
     }
   };
 
+  // Handle profile picture selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Please select a valid image file (JPG, PNG, GIF, or WebP)');
+      return;
+    }
+    
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image size must be less than 5MB');
+      return;
+    }
+    
+    setUploadError(null);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+    
+    // Upload the file
+    uploadProfilePicture(file);
+  };
+  
+  // Upload profile picture to Cloudinary
+  const uploadProfilePicture = async (file) => {
+    try {
+      setUploading(true);
+      setUploadError(null);
+      
+      const response = await employeeService.uploadProfilePicture(file);
+      
+      if (response.success) {
+        setProfile(prev => ({
+          ...prev,
+          profilePicture: response.profilePicture,
+        }));
+        setImagePreview(null); // Clear preview after successful upload
+      } else {
+        setUploadError(response.message || 'Failed to upload image');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      setUploadError(err.response?.data?.message || 'Failed to upload profile picture');
+      setImagePreview(null);
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  // Trigger file input click
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleEdit = () => {
     setEditData({
       phone: profile?.phone || '',
-      image: profile?.image || '',
-      address: { ...profile?.address },
-      emergencyContact: { ...profile?.emergencyContact },
+      address: profile?.address || '',
     });
     setIsEditing(true);
   };
@@ -79,12 +165,18 @@ export default function ProfilePage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      // API call would go here
-      // await employeeService.update(profile._id, editData);
       
-      setProfile(prev => ({ ...prev, ...editData }));
-      setIsEditing(false);
+      // Update profile via API
+      const response = await employeeService.update(profile._id, editData);
+      
+      if (response.success) {
+        setProfile(prev => ({ ...prev, ...editData }));
+        setIsEditing(false);
+      } else {
+        setError(response.message || 'Failed to update profile');
+      }
     } catch (err) {
+      console.error('Update error:', err);
       setError('Failed to update profile');
     } finally {
       setSaving(false);
@@ -104,6 +196,9 @@ export default function ProfilePage() {
     );
   }
 
+  // Determine what to show as profile image
+  const displayImage = imagePreview || profile.profilePicture;
+
   return (
     <div>
       {/* Page Header */}
@@ -121,23 +216,178 @@ export default function ProfilePage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
         {/* Profile Card */}
         <Card hover={false} style={{ padding: '32px', textAlign: 'center' }}>
-          <div
-            style={{
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--primary-500), var(--primary-700))',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+          {/* Profile Picture with Upload */}
+          <div 
+            style={{ 
+              position: 'relative', 
+              width: '140px', 
+              height: '140px', 
               margin: '0 auto 20px',
-              fontSize: '48px',
-              color: 'white',
-              fontWeight: '600',
             }}
           >
-            {profile.Employname?.charAt(0)?.toUpperCase() || 'U'}
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            
+            {/* Profile Picture */}
+            <div
+              onClick={triggerFileSelect}
+              style={{
+                width: '140px',
+                height: '140px',
+                borderRadius: '50%',
+                background: displayImage 
+                  ? `url(${displayImage}) center/cover no-repeat`
+                  : 'linear-gradient(135deg, var(--primary-500), var(--primary-700))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: displayImage ? '0' : '56px',
+                color: 'white',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                border: '4px solid var(--gray-100)',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              {!displayImage && (profile.Employname?.charAt(0)?.toUpperCase() || 'U')}
+              
+              {/* Hover Overlay */}
+              <div 
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0,
+                  transition: 'opacity 0.3s ease',
+                  borderRadius: '50%',
+                }}
+                className="profile-picture-overlay"
+              >
+                <svg 
+                  width="32" 
+                  height="32" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="white" 
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+              </div>
+            </div>
+            
+            {/* Upload Progress Indicator */}
+            {uploading && (
+              <div 
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0, 0, 0, 0.6)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <div 
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '3px solid rgba(255, 255, 255, 0.3)',
+                    borderTopColor: 'white',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* Camera Badge */}
+            <div
+              onClick={triggerFileSelect}
+              style={{
+                position: 'absolute',
+                bottom: '4px',
+                right: '4px',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                background: 'var(--primary-500)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                border: '3px solid white',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                transition: 'transform 0.2s ease, background 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.1)';
+                e.currentTarget.style.background = 'var(--primary-600)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.background = 'var(--primary-500)';
+              }}
+            >
+              <svg 
+                width="16" 
+                height="16" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="white" 
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+            </div>
           </div>
+          
+          {/* Upload Error */}
+          {uploadError && (
+            <div 
+              style={{ 
+                color: 'var(--error)', 
+                fontSize: '13px', 
+                marginBottom: '12px',
+                padding: '8px 12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: '8px',
+              }}
+            >
+              {uploadError}
+            </div>
+          )}
+          
+          {/* Upload Hint */}
+          <p 
+            style={{ 
+              fontSize: '12px', 
+              color: 'var(--gray-400)', 
+              marginBottom: '16px',
+            }}
+          >
+            Click the camera icon to upload a photo
+          </p>
+          
           <h2 style={{ fontSize: '22px', fontWeight: '600', marginBottom: '4px' }}>
             {profile.Employname}
           </h2>
@@ -168,7 +418,7 @@ export default function ProfilePage() {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <InfoRow label="Email" value={profile.email} />
-              <InfoRow label="Phone" value={profile.phone} />
+              <InfoRow label="Phone" value={profile.phone || 'Not provided'} />
             </div>
           </Card>
 
@@ -178,9 +428,7 @@ export default function ProfilePage() {
               Address
             </h3>
             <p style={{ color: 'var(--gray-600)', lineHeight: '1.6' }}>
-              {profile.address?.street}<br />
-              {profile.address?.city}, {profile.address?.state} {profile.address?.pincode}<br />
-              {profile.address?.country}
+              {profile.address || 'No address provided'}
             </p>
           </Card>
 
@@ -190,9 +438,9 @@ export default function ProfilePage() {
               Emergency Contact
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <InfoRow label="Name" value={profile.emergencyContact?.name} />
-              <InfoRow label="Phone" value={profile.emergencyContact?.phone} />
-              <InfoRow label="Relation" value={profile.emergencyContact?.relation} />
+              <InfoRow label="Name" value={profile.emergencyContact?.name || 'Not provided'} />
+              <InfoRow label="Phone" value={profile.emergencyContact?.phone || 'Not provided'} />
+              <InfoRow label="Relation" value={profile.emergencyContact?.relation || 'Not provided'} />
             </div>
           </Card>
 
@@ -204,19 +452,19 @@ export default function ProfilePage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
               <div style={{ textAlign: 'center', padding: '16px', background: 'var(--gray-50)', borderRadius: '12px' }}>
                 <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--success)' }}>
-                  {profile.leaveBalance?.paid}
+                  {profile.leaveBalance?.paid || 0}
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginTop: '4px' }}>Paid Leave</div>
               </div>
               <div style={{ textAlign: 'center', padding: '16px', background: 'var(--gray-50)', borderRadius: '12px' }}>
                 <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--warning)' }}>
-                  {profile.leaveBalance?.sick}
+                  {profile.leaveBalance?.sick || 0}
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginTop: '4px' }}>Sick Leave</div>
               </div>
               <div style={{ textAlign: 'center', padding: '16px', background: 'var(--gray-50)', borderRadius: '12px' }}>
                 <div style={{ fontSize: '28px', fontWeight: '700', color: 'var(--gray-600)' }}>
-                  {profile.leaveBalance?.unpaid}
+                  {profile.leaveBalance?.unpaid || 0}
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--gray-500)', marginTop: '4px' }}>Unpaid Leave</div>
               </div>
@@ -250,57 +498,38 @@ export default function ProfilePage() {
               className="input"
               value={editData.phone || ''}
               onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+              placeholder="+91 9876543210"
             />
           </div>
           <div className="input-group">
-            <label>Profile Image URL</label>
-            <input
-              type="url"
+            <label>Address</label>
+            <textarea
               className="input"
-              value={editData.image || ''}
-              onChange={(e) => setEditData({ ...editData, image: e.target.value })}
+              rows="3"
+              value={editData.address || ''}
+              onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+              placeholder="Enter your full address"
+              style={{ resize: 'vertical', minHeight: '80px' }}
             />
-          </div>
-          <div className="input-group">
-            <label>Street Address</label>
-            <input
-              type="text"
-              className="input"
-              value={editData.address?.street || ''}
-              onChange={(e) => setEditData({ 
-                ...editData, 
-                address: { ...editData.address, street: e.target.value } 
-              })}
-            />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div className="input-group">
-              <label>City</label>
-              <input
-                type="text"
-                className="input"
-                value={editData.address?.city || ''}
-                onChange={(e) => setEditData({ 
-                  ...editData, 
-                  address: { ...editData.address, city: e.target.value } 
-                })}
-              />
-            </div>
-            <div className="input-group">
-              <label>Pincode</label>
-              <input
-                type="text"
-                className="input"
-                value={editData.address?.pincode || ''}
-                onChange={(e) => setEditData({ 
-                  ...editData, 
-                  address: { ...editData.address, pincode: e.target.value } 
-                })}
-              />
-            </div>
           </div>
         </div>
       </Modal>
+
+      {/* Inline Styles for hover effect */}
+      <style jsx>{`
+        .profile-picture-overlay {
+          opacity: 0 !important;
+        }
+        
+        div:hover > .profile-picture-overlay {
+          opacity: 1 !important;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
