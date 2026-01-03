@@ -2,7 +2,7 @@ import express from "express";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import Employmodel from "../models/employ.js";
+import Employmodel from "../model/employ.js";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 
