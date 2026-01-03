@@ -71,6 +71,28 @@ EmployeeProfileRouter.post(
 );
 
 
+// Get all employee profiles (admin only)
+EmployeeProfileRouter.get("/profiles", protect, adminOnly, async (req, res) => {
+  try {
+    const profiles = await EmployeeProfile.find()
+      .populate("employee", "Employname email role")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: profiles.length,
+      profiles,
+    });
+  } catch (error) {
+    console.error("Get all profiles error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch profiles",
+    });
+  }
+});
+
+
 EmployeeProfileRouter.post("/profile", protect, async (req, res) => {
   try {
     const exists = await EmployeeProfile.findOne({
@@ -133,11 +155,26 @@ EmployeeProfileRouter.get("/profile", protect, async (req, res) => {
 
 EmployeeProfileRouter.put("/profile", protect, async (req, res) => {
   try {
-    const allowedFields = ["phone", "address", "profilePicture"];
+    // All editable fields except salaryStructure (admin-only)
+    const allowedFields = [
+      "phone",
+      "address",
+      "profilePicture",
+      "dateOfBirth",
+      "nationality",
+      "personalEmail",
+      "gender",
+      "maritalStatus",
+      "jobDetails",
+      "bankDetails",
+      "documents",
+    ];
 
     const updates = {};
     allowedFields.forEach((field) => {
-      if (req.body[field]) updates[field] = req.body[field];
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
     });
 
     const updatedProfile = await EmployeeProfile.findOneAndUpdate(

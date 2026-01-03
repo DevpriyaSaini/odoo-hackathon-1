@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Backend API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 // Create axios instance
 const api = axios.create({
@@ -76,9 +76,15 @@ export const authService = {
 // ============ EMPLOYEE AUTH SERVICES ============
 
 export const employeeAuthService = {
-  // Employee registration
+  // Employee registration (self-registration)
   register: async (data) => {
     const response = await api.post('/employ/register', data);
+    return response.data;
+  },
+
+  // Admin-only: Create new employee with auto-generated ID and password
+  createEmployee: async (data) => {
+    const response = await api.post('/employ/create', data);
     return response.data;
   },
 
@@ -110,7 +116,7 @@ const CLOUDINARY_UPLOAD_PRESET = 'devpriyasaini';
 export const employeeService = {
   // Get all employees (admin only)
   getAll: async () => {
-    const response = await api.get('/employ-profile/profile');
+    const response = await api.get('/employ-profile/profiles');
     return response.data;
   },
 
@@ -132,59 +138,12 @@ export const employeeService = {
     return response.data;
   },
 
-  // Upload profile picture directly to Cloudinary, then update backend
-  uploadProfilePicture: async (file) => {
-    try {
-      // Step 1: Upload directly to Cloudinary using upload preset
-      const cloudinaryFormData = new FormData();
-      cloudinaryFormData.append('file', file);
-      cloudinaryFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      cloudinaryFormData.append('folder', 'dayflow/profiles');
-      
-      const cloudinaryResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: cloudinaryFormData,
-        }
-      );
-      
-      if (!cloudinaryResponse.ok) {
-        const errorData = await cloudinaryResponse.json();
-        throw new Error(errorData.error?.message || 'Failed to upload image to Cloudinary');
-      }
-      
-      const cloudinaryData = await cloudinaryResponse.json();
-      const imageUrl = cloudinaryData.secure_url;
-      
-      // Step 2: Try to update the profile, if it fails (404), create a new one
-      let response;
-      try {
-        response = await api.put('/employ-profile/profile', {
-          profilePicture: imageUrl,
-        });
-      } catch (updateError) {
-        // If profile doesn't exist, create it
-        if (updateError.response?.status === 404) {
-          response = await api.post('/employ-profile/profile', {
-            profilePicture: imageUrl,
-          });
-        } else {
-          throw updateError;
-        }
-      }
-      
-      return {
-        success: true,
-        profilePicture: imageUrl,
-        profile: response.data.profile,
-      };
-    } catch (error) {
-      console.error('Upload error:', error);
-      throw error;
-    }
+  // Admin update employee profile
+  adminUpdate: async (employeeId, data) => {
+    const response = await api.put(`/employ-profile/profile/${employeeId}`, data);
+    return response.data;
   },
-};
+}
 // ============ ATTENDANCE SERVICES ============
 
 export const attendanceService = {

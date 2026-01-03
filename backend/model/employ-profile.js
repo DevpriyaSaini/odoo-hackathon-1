@@ -4,17 +4,28 @@ const employeeProfileSchema = new mongoose.Schema(
   {
     employee: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "employ",
+      ref: "Employee",
       required: true,
       unique: true,
     },
 
-    
+    // Personal Information
     phone: String,
     address: String,
     profilePicture: String,
+    dateOfBirth: Date,
+    nationality: { type: String, default: "Indian" },
+    personalEmail: String,
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", ""],
+    },
+    maritalStatus: {
+      type: String,
+      enum: ["single", "married", "divorced", "widowed", ""],
+    },
 
-    
+    // Job Details
     jobDetails: {
       designation: String,
       department: String,
@@ -25,16 +36,33 @@ const employeeProfileSchema = new mongoose.Schema(
       },
     },
 
-  
-    salaryStructure: {
-      basic: Number,
-      hra: Number,
-      allowances: Number,
-      deductions: Number,
-      netSalary: Number,
+    // Bank Details
+    bankDetails: {
+      bankName: String,
+      accountNumber: String,
+      panNo: String,
+      uamNo: String,
+      empCode: String,
     },
 
-  
+    // Salary Structure (Admin only - not editable by employee)
+    salaryStructure: {
+      basic: { type: Number, default: 0 },
+      hra: { type: Number, default: 0 },
+      allowances: { type: Number, default: 0 },
+      standardAllowance: { type: Number, default: 0 },
+      performanceBonus: { type: Number, default: 0 },
+      leaveTravel: { type: Number, default: 0 },
+      fixedAllowance: { type: Number, default: 0 },
+      pfContribution: { type: Number, default: 0 },
+      professionalTax: { type: Number, default: 0 },
+      deductions: { type: Number, default: 0 },
+      netSalary: { type: Number, default: 0 },
+      workingDays: { type: Number, default: 22 },
+      workingHours: { type: Number, default: 8 },
+    },
+
+    // Documents
     documents: {
       aadhaar: String,
       pan: String,

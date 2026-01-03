@@ -15,13 +15,13 @@ const userSchema = new Schema(
       type: String,
       required: [true, "Email is required"],
       unique: true,
-     validate: {
+      validate: {
         validator: function (value) {
-          // ✅ Must start with year (4 digits) and end with @iitjammu.ac.in
-          return /^[0-9]{4}[a-zA-Z0-9._%+-]*@iitjammu\.ac\.in$/.test(value);
+          // ✅ Must start with year (4 digits) and end with @iitjammu.ac.in OR @mnit.ac.in
+          return /^[0-9]{4}[a-zA-Z0-9._%+-]*@(iitjammu\.ac\.in|mnit\.ac\.in)$/.test(value);
         },
         message:
-          "Email must start with year (e.g., 2024xxxx) and end with @iitjammu.ac.in",
+          "Email must start with year (e.g., 2024xxxx) and end with @iitjammu.ac.in or @mnit.ac.in",
       },
     },
     password: {

@@ -30,9 +30,10 @@ const employeeSchema = new Schema(
       unique: true,
       validate: {
         validator: function (value) {
-          return /^[0-9]{4}[a-zA-Z0-9._%+-]*@iitjammu\.ac\.in$/.test(value);
+          // ✅ Must start with year (4 digits) and end with @iitjammu.ac.in OR @mnit.ac.in
+          return /^[0-9]{4}[a-zA-Z0-9._%+-]*@(iitjammu\.ac\.in|mnit\.ac\.in)$/.test(value);
         },
-        message: "Email must start with year and end with @iitjammu.ac.in",
+        message: "Email must start with year and end with @iitjammu.ac.in or @mnit.ac.in",
       },
     },
     password: {
