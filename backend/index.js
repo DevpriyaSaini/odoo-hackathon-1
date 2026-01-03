@@ -1,18 +1,22 @@
 import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import 'dotenv/config';
+
+// Import routes
 import adminRoutes from "./controllers/admin.js";
-import employeeRoutes from "./controllers/employ.js";
+import employRoutes from "./controllers/employ.js";
+import employProfileRoutes from "./controllers/employ-profile.js";
 import attendanceRoutes from "./controllers/attendance.js";
 import leaveRoutes from "./controllers/leave.js";
 import payrollRoutes from "./controllers/payroll.js";
 
 const app = express();
-const PORT = process.env.PORT || 4000;
-import mongoose from "mongoose";
-import cors from "cors";
-import 'dotenv/config';
-
+// Change this line temporarily to test
+const PORT = process.env.PORT || 4001;
 const mongoUrl = process.env.MONGO_URL || "";
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -35,6 +39,7 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Database connection
 const connectdb = async () => {
   try {
     await mongoose.connect(mongoUrl);
@@ -46,7 +51,8 @@ const connectdb = async () => {
 
 // Routes
 app.use("/admin", adminRoutes);
-app.use("/employees", employeeRoutes);
+app.use("/employ", employRoutes);
+app.use("/employ-profile", employProfileRoutes);
 app.use("/attendance", attendanceRoutes);
 app.use("/leaves", leaveRoutes);
 app.use("/payroll", payrollRoutes);

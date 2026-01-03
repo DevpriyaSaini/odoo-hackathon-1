@@ -73,46 +73,55 @@ export const authService = {
   },
 };
 
+// ============ EMPLOYEE AUTH SERVICES ============
+
+export const employeeAuthService = {
+  // Employee registration
+  register: async (data) => {
+    const response = await api.post('/employ/register', data);
+    return response.data;
+  },
+
+  // Verify OTP
+  verifyOtp: async (data) => {
+    const response = await api.put('/employ/verify-otp', data);
+    return response.data;
+  },
+
+  // Login
+  login: async (data) => {
+    const response = await api.post('/employ/login', data);
+    return response.data;
+  },
+
+  // Get all employees
+  getAll: async () => {
+    const response = await api.get('/employ/all');
+    return response.data;
+  },
+};
+
 // ============ EMPLOYEE SERVICES ============
 
 export const employeeService = {
   // Get all employees (admin only)
   getAll: async () => {
-    const response = await api.get('/employees');
-    return response.data;
-  },
-
-  // Get employee by ID
-  getById: async (id) => {
-    const response = await api.get(`/employees/${id}`);
+    const response = await api.get('/employ-profile/profile');
     return response.data;
   },
 
   // Get current employee profile
   getProfile: async () => {
-    const response = await api.get('/employees/me');
+    const response = await api.get('/employ-profile/profile');
     return response.data;
   },
 
-  // Update employee
+  // Update employee profile
   update: async (id, data) => {
-    const response = await api.put(`/employees/${id}`, data);
+    const response = await api.put('/employ-profile/profile', data);
     return response.data;
   },
-
-  // Create employee (admin only)
-  create: async (data) => {
-    const response = await api.post('/employees', data);
-    return response.data;
-  },
-
-  // Delete employee (admin only)
-  delete: async (id) => {
-    const response = await api.delete(`/employees/${id}`);
-    return response.data;
-  },
-};
-
+}
 // ============ ATTENDANCE SERVICES ============
 
 export const attendanceService = {

@@ -1,7 +1,6 @@
 import express from "express";
 import Attendance from "../model/attendance.js";
-import authMiddleware from "../middleware/auth.js";
-import adminOnlyMiddleware from "../middleware/adminOnly.js";
+import { protect, adminOnly } from "../middleware/auth.js";
 
 const attendanceRouter = express.Router();
 
@@ -9,7 +8,7 @@ const attendanceRouter = express.Router();
  * POST /attendance/check-in
  * Mark check-in for the day
  */
-attendanceRouter.post("/check-in", authMiddleware, async (req, res) => {
+attendanceRouter.post("/check-in", protect, async (req, res) => {
   try {
     const employeeId = req.user.id;
     const today = new Date();
@@ -74,7 +73,7 @@ attendanceRouter.post("/check-in", authMiddleware, async (req, res) => {
  * POST /attendance/check-out
  * Mark check-out for the day
  */
-attendanceRouter.post("/check-out", authMiddleware, async (req, res) => {
+attendanceRouter.post("/check-out", protect, async (req, res) => {
   try {
     const employeeId = req.user.id;
     const today = new Date();
@@ -143,7 +142,7 @@ attendanceRouter.post("/check-out", authMiddleware, async (req, res) => {
  * GET /attendance/today
  * Get today's attendance status
  */
-attendanceRouter.get("/today", authMiddleware, async (req, res) => {
+attendanceRouter.get("/today", protect, async (req, res) => {
   try {
     const employeeId = req.user.id;
     const today = new Date();
@@ -173,7 +172,7 @@ attendanceRouter.get("/today", authMiddleware, async (req, res) => {
  * GET /attendance/me
  * Get own attendance history
  */
-attendanceRouter.get("/me", authMiddleware, async (req, res) => {
+attendanceRouter.get("/me", protect, async (req, res) => {
   try {
     const employeeId = req.user.id;
     const { startDate, endDate, limit = 30 } = req.query;
@@ -219,7 +218,7 @@ attendanceRouter.get("/me", authMiddleware, async (req, res) => {
  * GET /attendance/all
  * Get all employees' attendance (admin only)
  */
-attendanceRouter.get("/all", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+attendanceRouter.get("/all", protect, adminOnly, async (req, res) => {
   try {
     const { date, startDate, endDate, status, employeeId } = req.query;
 
@@ -279,7 +278,7 @@ attendanceRouter.get("/all", authMiddleware, adminOnlyMiddleware, async (req, re
  * PUT /attendance/:id
  * Override attendance (admin only)
  */
-attendanceRouter.put("/:id", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+attendanceRouter.put("/:id", protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, notes, checkIn, checkOut } = req.body;

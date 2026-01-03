@@ -1,7 +1,6 @@
 import express from "express";
 import Payroll from "../model/payroll.js";
-import authMiddleware from "../middleware/auth.js";
-import adminOnlyMiddleware from "../middleware/adminOnly.js";
+import { protect, adminOnly } from "../middleware/auth.js";
 
 const payrollRouter = express.Router();
 
@@ -9,7 +8,7 @@ const payrollRouter = express.Router();
  * GET /payroll/me
  * Get own payroll history
  */
-payrollRouter.get("/me", authMiddleware, async (req, res) => {
+payrollRouter.get("/me", protect, async (req, res) => {
   try {
     const employeeId = req.user.id;
     const { year, limit = 12 } = req.query;
@@ -53,7 +52,7 @@ payrollRouter.get("/me", authMiddleware, async (req, res) => {
  * GET /payroll/all
  * Get all payroll records (admin only)
  */
-payrollRouter.get("/all", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+payrollRouter.get("/all", protect, adminOnly, async (req, res) => {
   try {
     const { month, year, status, employeeId } = req.query;
 
@@ -95,7 +94,7 @@ payrollRouter.get("/all", authMiddleware, adminOnlyMiddleware, async (req, res) 
  * POST /payroll
  * Create payroll record (admin only)
  */
-payrollRouter.post("/", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+payrollRouter.post("/", protect, adminOnly, async (req, res) => {
   try {
     const { employeeId, month, year, basic, allowances, deductions, workingDays, presentDays, notes } = req.body;
 
@@ -145,7 +144,7 @@ payrollRouter.post("/", authMiddleware, adminOnlyMiddleware, async (req, res) =>
  * PUT /payroll/:employeeId
  * Update payroll (admin only)
  */
-payrollRouter.put("/:id", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+payrollRouter.put("/:id", protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -185,7 +184,7 @@ payrollRouter.put("/:id", authMiddleware, adminOnlyMiddleware, async (req, res) 
  * PUT /payroll/:id/pay
  * Mark payroll as paid (admin only)
  */
-payrollRouter.put("/:id/pay", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+payrollRouter.put("/:id/pay", protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
 

@@ -1,8 +1,7 @@
 import express from "express";
 import Leave from "../model/leave.js";
 import Employmodel from "../model/employ.js";
-import authMiddleware from "../middleware/auth.js";
-import adminOnlyMiddleware from "../middleware/adminOnly.js";
+import { protect, adminOnly } from "../middleware/auth.js";
 
 const leaveRouter = express.Router();
 
@@ -10,7 +9,7 @@ const leaveRouter = express.Router();
  * POST /leaves/apply
  * Apply for leave
  */
-leaveRouter.post("/apply", authMiddleware, async (req, res) => {
+leaveRouter.post("/apply", protect, async (req, res) => {
   try {
     const { type, startDate, endDate, reason } = req.body;
     const employeeId = req.user.id;
@@ -87,7 +86,7 @@ leaveRouter.post("/apply", authMiddleware, async (req, res) => {
  * GET /leaves/me
  * Get own leave requests
  */
-leaveRouter.get("/me", authMiddleware, async (req, res) => {
+leaveRouter.get("/me", protect, async (req, res) => {
   try {
     const employeeId = req.user.id;
     const { status, year } = req.query;
@@ -135,7 +134,7 @@ leaveRouter.get("/me", authMiddleware, async (req, res) => {
  * GET /leaves/all
  * Get all leave requests (admin only)
  */
-leaveRouter.get("/all", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+leaveRouter.get("/all", protect, adminOnly, async (req, res) => {
   try {
     const { status, employeeId, startDate, endDate } = req.query;
 
@@ -179,7 +178,7 @@ leaveRouter.get("/all", authMiddleware, adminOnlyMiddleware, async (req, res) =>
  * PUT /leaves/:id/approve
  * Approve leave request (admin only)
  */
-leaveRouter.put("/:id/approve", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+leaveRouter.put("/:id/approve", protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const { comment } = req.body;
@@ -231,7 +230,7 @@ leaveRouter.put("/:id/approve", authMiddleware, adminOnlyMiddleware, async (req,
  * PUT /leaves/:id/reject
  * Reject leave request (admin only)
  */
-leaveRouter.put("/:id/reject", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+leaveRouter.put("/:id/reject", protect, adminOnly, async (req, res) => {
   try {
     const { id } = req.params;
     const { comment } = req.body;
