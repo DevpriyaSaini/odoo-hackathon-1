@@ -1,5 +1,23 @@
 {
+  "name": "dayflow-hrms-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Dayflow HRMS",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["hrms", "dayflow", "employee-management"],
+  "author": "Ritesh",
+  "license": "ISC",
   "dependencies": {
-    "express": "^5.2.1"
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "express-validator": "^7.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.4",
+    "nodemailer": "^6.9.16"
   }
 }
