@@ -1,5 +1,6 @@
 import express from "express";
 import EmployeeProfile from "../model/employ-profile.js";
+import Employee from "../model/employ.js";
 import { protect, adminOnly } from "../middleware/auth.js";
 import { uploadProfile, deleteImage, getPublicIdFromUrl } from "../config/cloudinary.js";
 
@@ -206,14 +207,30 @@ EmployeeProfileRouter.put("/profile", protect, async (req, res) => {
 
 // Get specific employee profile (admin only)
 EmployeeProfileRouter.get(
-  "/profile/:employeeId",
+  "/profile/:id",
   protect,
   adminOnly,
   async (req, res) => {
     try {
-      const { employeeId } = req.params;
+      let userId = req.params.id;
+
+      // Check if it's a valid MongoDB ObjectId
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(userId);
+
+      if (!isMongoId) {
+        // Try finding employee by custom employeeId
+        const user = await Employee.findOne({ employeeId: userId });
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "Employee not found with this ID",
+          });
+        }
+        userId = user._id;
+      }
+
       const profile = await EmployeeProfile.findOne({
-        employee: employeeId,
+        employee: userId,
       }).populate("employee", "Employname email role");
 
       if (!profile) {
@@ -238,15 +255,30 @@ EmployeeProfileRouter.get(
 );
 
 EmployeeProfileRouter.put(
-  "/profile/:employeeId",
+  "/profile/:id",
   protect,
   adminOnly,
   async (req, res) => {
     try {
-      const { employeeId } = req.params;
+      let userId = req.params.id;
+
+      // Check if it's a valid MongoDB ObjectId
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(userId);
+
+      if (!isMongoId) {
+        // Try finding employee by custom employeeId
+        const user = await Employee.findOne({ employeeId: userId });
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: "Employee not found with this ID",
+          });
+        }
+        userId = user._id;
+      }
 
       const updatedProfile = await EmployeeProfile.findOneAndUpdate(
-        { employee: employeeId },
+        { employee: userId },
         req.body,
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );

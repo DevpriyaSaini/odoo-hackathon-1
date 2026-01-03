@@ -8,6 +8,8 @@ import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
 
+import { leaveService } from '../services/api';
+
 export default function LeavesPage() {
   const { user, loading: authLoading, isAdmin } = useAuth();
   const [leaves, setLeaves] = useState([]);
@@ -33,47 +35,34 @@ export default function LeavesPage() {
     try {
       setLoading(true);
       
-      // Mock data
-      const mockLeaves = [
-        { 
-          id: 1, 
-          type: 'paid', 
-          startDate: '2026-01-10', 
-          endDate: '2026-01-12', 
-          duration: 3,
-          reason: 'Family event',
-          status: 'pending',
-          employee: isAdmin() ? { Employname: 'John Doe', department: 'Engineering' } : null,
-        },
-        { 
-          id: 2, 
-          type: 'sick', 
-          startDate: '2025-12-20', 
-          endDate: '2025-12-21', 
-          duration: 2,
-          reason: 'Not feeling well',
-          status: 'approved',
-          employee: isAdmin() ? { Employname: 'Jane Smith', department: 'Marketing' } : null,
-        },
-        { 
-          id: 3, 
-          type: 'unpaid', 
-          startDate: '2025-12-15', 
-          endDate: '2025-12-15', 
-          duration: 1,
-          reason: 'Personal work',
-          status: 'rejected',
-          adminComment: 'Insufficient notice',
-          employee: isAdmin() ? { Employname: 'Mike Johnson', department: 'Sales' } : null,
-        },
-      ];
+      let response;
+      if (isAdmin()) {
+        response = await leaveService.getAll();
+      } else {
+        response = await leaveService.getMine();
+      }
 
-      setLeaves(mockLeaves);
-      setSummary({
-        pending: mockLeaves.filter(l => l.status === 'pending').length,
-        approved: mockLeaves.filter(l => l.status === 'approved').length,
-        rejected: mockLeaves.filter(l => l.status === 'rejected').length,
-      });
+      if (response.success) {
+        const mappedLeaves = response.leaves.map(l => ({
+          id: l._id,
+          ...l,
+          employee: l.employeeId // Ensure this matches population in backend
+        }));
+        setLeaves(mappedLeaves);
+        
+        if (response.summary) {
+          setSummary(response.summary);
+        } else {
+           // Calc summary if not provided (fallback)
+           setSummary({
+            pending: mappedLeaves.filter(l => l.status === 'pending').length,
+            approved: mappedLeaves.filter(l => l.status === 'approved').length,
+            rejected: mappedLeaves.filter(l => l.status === 'rejected').length,
+           });
+        }
+      } else {
+        setError('Failed to fetch leaves');
+      }
       setError(null);
     } catch (err) {
       console.error('Error fetching leaves:', err);
@@ -87,46 +76,40 @@ export default function LeavesPage() {
     e.preventDefault();
     try {
       setSubmitting(true);
-      // API call would go here
-      console.log('Applying for leave:', formData);
       
-      // Add to list (mock)
-      const newLeave = {
-        id: Date.now(),
-        ...formData,
-        duration: Math.ceil((new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24)) + 1,
-        status: 'pending',
-      };
-      setLeaves([newLeave, ...leaves]);
-      setSummary(prev => ({ ...prev, pending: prev.pending + 1 }));
+      const response = await leaveService.apply(formData);
       
-      setShowModal(false);
-      setFormData({ type: 'paid', startDate: '', endDate: '', reason: '' });
+      if (response.success) {
+        setShowModal(false);
+        setFormData({ type: 'paid', startDate: '', endDate: '', reason: '' });
+        fetchLeaves(); // Refresh list
+      }
     } catch (err) {
-      setError('Failed to apply for leave');
+      console.error(err);
+      setError(err.response?.data?.message || 'Failed to apply for leave');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleApprove = async (id) => {
-    // API call would go here
-    setLeaves(leaves.map(l => l.id === id ? { ...l, status: 'approved' } : l));
-    setSummary(prev => ({ 
-      ...prev, 
-      pending: prev.pending - 1, 
-      approved: prev.approved + 1 
-    }));
+    try {
+      await leaveService.approve(id, 'Approved by admin');
+      fetchLeaves();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to approve leave');
+    }
   };
 
   const handleReject = async (id) => {
-    // API call would go here
-    setLeaves(leaves.map(l => l.id === id ? { ...l, status: 'rejected' } : l));
-    setSummary(prev => ({ 
-      ...prev, 
-      pending: prev.pending - 1, 
-      rejected: prev.rejected + 1 
-    }));
+    try {
+      await leaveService.reject(id, 'Rejected by admin');
+      fetchLeaves();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to reject leave');
+    }
   };
 
   const columns = isAdmin() ? [

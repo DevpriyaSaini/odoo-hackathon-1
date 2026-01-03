@@ -120,6 +120,12 @@ export const employeeService = {
     return response.data;
   },
 
+  // Get specific employee profile (admin only)
+  getById: async (employeeId) => {
+    const response = await api.get(`/employ-profile/profile/${employeeId}`);
+    return response.data;
+  },
+
   // Get current employee profile
   getProfile: async () => {
     const response = await api.get('/employ-profile/profile');

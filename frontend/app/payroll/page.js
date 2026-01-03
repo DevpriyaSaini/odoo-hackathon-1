@@ -6,6 +6,7 @@ import Card, { StatCard } from '../components/Card';
 import Table from '../components/Table';
 import StatusBadge from '../components/StatusBadge';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { payrollService } from '../services/api';
 
 export default function PayrollPage() {
   const { user, loading: authLoading, isAdmin } = useAuth();
@@ -24,43 +25,28 @@ export default function PayrollPage() {
     try {
       setLoading(true);
       
-      // Mock data
-      const mockPayroll = [
-        {
-          id: 1,
-          month: 12,
-          year: 2025,
-          basic: 50000,
-          allowances: { hra: 15000, transport: 3000, medical: 2000 },
-          deductions: { tax: 5000, pf: 6000 },
-          grossSalary: 70000,
-          totalDeductions: 11000,
-          netSalary: 59000,
-          status: 'paid',
-          paidOn: '2025-12-31',
-          employee: isAdmin() ? { Employname: 'John Doe', department: 'Engineering' } : null,
-        },
-        {
-          id: 2,
-          month: 11,
-          year: 2025,
-          basic: 50000,
-          allowances: { hra: 15000, transport: 3000, medical: 2000 },
-          deductions: { tax: 5000, pf: 6000 },
-          grossSalary: 70000,
-          totalDeductions: 11000,
-          netSalary: 59000,
-          status: 'paid',
-          paidOn: '2025-11-30',
-          employee: isAdmin() ? { Employname: 'Jane Smith', department: 'Marketing' } : null,
-        },
-      ];
-
-      setPayroll(mockPayroll);
-      if (mockPayroll.length > 0) {
-        setCurrentPayslip(mockPayroll[0]);
+      let response;
+      if (isAdmin()) {
+        response = await payrollService.getAll();
+      } else {
+        response = await payrollService.getMine();
       }
-      setError(null);
+
+      if (response.success) {
+        // Backend returns: { success: true, payroll: [...] }
+        const payrollData = response.payroll.map(item => ({
+          ...item,
+          id: item._id, // Ensure id is available for table keys
+          employee: item.employeeId || null // Ensure correct field mapping
+        }));
+        
+        setPayroll(payrollData);
+        if (payrollData.length > 0) {
+          setCurrentPayslip(payrollData[0]);
+        }
+      } else {
+        setError('Failed to fetch payroll records');
+      }
     } catch (err) {
       console.error('Error fetching payroll:', err);
       setError('Failed to load payroll data');
