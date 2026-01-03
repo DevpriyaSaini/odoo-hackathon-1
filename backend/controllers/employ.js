@@ -1,287 +1,314 @@
 import express from "express";
-import crypto from "crypto";
-import jwt from "jsonwebtoken";
-import nodemailer from "nodemailer";
-import Adminmodel from "../models/admin.js";
-import bcrypt from "bcryptjs";
-import dotenv from "dotenv";
-dotenv.config();
+import Employmodel from "../model/employ.js";
+import authMiddleware from "../middleware/auth.js";
+import adminOnlyMiddleware from "../middleware/adminOnly.js";
 
+const employeeRouter = express.Router();
 
+// Fields that employees can edit themselves
+const EMPLOYEE_EDITABLE_FIELDS = [
+  "phone",
+  "address",
+  "emergencyContact",
+  "image",
+];
 
-// MAILER SETUP + OTP SENDER
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,      // backend env vars
-    pass: process.env.GMAIL_APP_PASS,
-  },
-});
-
-async function sendOtpMail(name, email, otp) {
-  try {
-    const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to: email,
-      subject: `Verify Your Email -Admin Portal`,
-      html: `
-        <h2>Welcome, Admin. ${name} 🎓</h2>
-        <p>To complete your registration, please use the OTP below:</p>
-        <h3 style="color:blue; font-size:22px;">${otp}</h3>
-        <p>This OTP is valid for <b>10 minutes</b>. If you did not request this, please ignore.</p>
-      `,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log("📧 Email sent:", info.response);
-    return info;
-  } catch (error) {
-    console.error("Email send error:", error);
-    throw error;
-  }
-}
-
-
-// JWT GENERATOR
-
-function generateToken(admin) {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not set");
-  }
-
-  return jwt.sign(
-    {
-      id: admin._id,
-      email: admin.email,
-      role: admin.role,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-}
-
-
-// AUTH ROUTES
-
-const Adminrouter = express.Router();
+// Fields that only admins can edit
+const ADMIN_ONLY_FIELDS = [
+  "department",
+  "position",
+  "joiningDate",
+  "employmentType",
+  "salary",
+  "leaveBalance",
+  "status",
+  "employeeId",
+  "reportingTo",
+  "role",
+];
 
 /**
- * POST /api/auth/register
- * - Registers admin (unverified)
- * - Generates OTP & expiry
- * - Sends OTP email
+ * GET /employees
+ * Get all employees (admin only)
  */
-Adminrouter.post("/register", async (req, res) => {
+employeeRouter.get("/", authMiddleware, adminOnlyMiddleware, async (req, res) => {
   try {
-    const { Adminname, email, password, image } = req.body;
-
-    if (!Adminname || !email || !password || !image) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required",
-      });
+    const { status, department, search } = req.query;
+    
+    let query = {};
+    
+    if (status) {
+      query.status = status;
+    }
+    
+    if (department) {
+      query.department = department;
+    }
+    
+    if (search) {
+      query.$or = [
+        { Employname: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { employeeId: { $regex: search, $options: "i" } },
+      ];
     }
 
-    // Generate OTP and expiry (10 minutes)
-    const otp = crypto.randomInt(100000, 999999).toString();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-
-    let admin = await Adminmodel.findOne({ email });
-
-    if (admin) {
-      if (admin.isVerified) {
-        return res.status(400).json({
-          success: false,
-          message: "Admin already exists",
-        });
-      } else {
-        // Exists but not verified: update details & resend OTP
-        admin.Adminname = Adminname;
-        admin.password = password; // will be hashed by pre-save
-        admin.image = image;
-        admin.VerifyCode = otp;
-        admin.VerifyCodeExpiry = otpExpiry;
-
-        await admin.save();
-        await sendOtpMail(Adminname, email, otp);
-
-        return res.status(200).json({
-          success: true,
-          message: "OTP resent. Please verify your email.",
-          userId: admin._id,
-        });
-      }
-    } else {
-      // New admin
-      admin = await Adminmodel.create({
-        Adminname,
-        email,
-        password,
-        image,
-        isVerified: false,
-        VerifyCode: otp,
-        VerifyCodeExpiry: otpExpiry,
-      });
-
-      await sendOtpMail(Adminname, email, otp);
-
-      return res.status(200).json({
-        success: true,
-        message: "Admin registered successfully. OTP sent to email.",
-        userId: admin._id,
-      });
-    }
-  } catch (error) {
-    console.error("Error during admin registration:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error registering admin",
-    });
-  }
-});
-
-/**
- * PUT /api/auth/verify-otp
- * - Verifies OTP
- * - Marks admin as verified
- * - Returns JWT
- */
-Adminrouter.put("/verify-otp", async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-    console.log("Verify OTP:", email, otp);
-
-    if (!email || !otp) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and OTP are required",
-      });
-    }
-
-    const admin = await Adminmodel.findOne({ email });
-    if (!admin) {
-      return res.status(404).json({
-        success: false,
-        message: "Admin not found",
-      });
-    }
-
-    if (admin.isVerified) {
-      const token = generateToken(admin);
-      return res.status(200).json({
-        success: true,
-        message: "Admin already verified",
-        token,
-      });
-    }
-  
-    if (
-      admin.VerifyCode?.toString() !== otp.toString() 
-     
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired OTP",
-      });
-    }
-
-    admin.isVerified = true;
-    admin.VerifyCode = undefined;
-    admin.VerifyCodeExpiry = undefined;
-    await admin.save();
-
-    const token = generateToken(admin);
+    const employees = await Employmodel.find(query)
+      .select("-password -VerifyCode -VerifyCodeExpiry")
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
-      message: "Email verified successfully",
-      token,
+      count: employees.length,
+      employees,
     });
   } catch (error) {
-    console.error("Error verifying admin OTP:", error);
+    console.error("Error fetching employees:", error);
     return res.status(500).json({
       success: false,
-      message: "Error verifying OTP",
+      message: "Error fetching employees",
     });
   }
 });
 
 /**
- * POST /api/auth/login
- * - Checks credentials
- * - Requires verified email
- * - Returns JWT
+ * GET /employees/me
+ * Get current employee's profile
  */
-// LOGIN - POST /api/auth/login
-Adminrouter.post("/login", async (req, res) => {
+employeeRouter.get("/me", authMiddleware, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const employee = await Employmodel.findById(req.user.id)
+      .select("-password -VerifyCode -VerifyCodeExpiry")
+      .populate("reportingTo", "Employname email position");
 
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password are required",
-      });
-    }
-
-    // find admin by email
-    const admin = await Adminmodel.findOne({ email });
-    if (!admin) {
+    if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Admin not found",
+        message: "Employee not found",
       });
     }
 
-    // compare password -> use the same variable name (admin)
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
+    return res.status(200).json({
+      success: true,
+      employee,
+    });
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching profile",
+    });
+  }
+});
 
-    if (!admin.isVerified) {
+/**
+ * GET /employees/:id
+ * Get employee by ID (admin or self)
+ */
+employeeRouter.get("/:id", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user is admin or accessing their own profile
+    if (req.user.role !== "admin" && req.user.id !== id) {
       return res.status(403).json({
         success: false,
-        message: "Email not verified. Please verify with OTP.",
+        message: "Access denied. You can only view your own profile.",
       });
     }
 
-    const token = generateToken(admin);
+    const employee = await Employmodel.findById(id)
+      .select("-password -VerifyCode -VerifyCodeExpiry")
+      .populate("reportingTo", "Employname email position");
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      message: "Login successful",
-      token,
+      employee,
     });
   } catch (error) {
-    console.error("Error logging in admin:", error);
+    console.error("Error fetching employee:", error);
     return res.status(500).json({
       success: false,
-      message: "Error logging in",
+      message: "Error fetching employee",
     });
   }
 });
 
-
-Adminrouter.get("/all-admins", async (req, res) => {
+/**
+ * PUT /employees/:id
+ * Update employee (field-level permissions)
+ */
+employeeRouter.put("/:id", authMiddleware, async (req, res) => {
   try {
-    const admins = await Adminmodel.find({}, '-password -VerifyCode -VerifyCodeExpiry');    
+    const { id } = req.params;
+    const updates = req.body;
+    const isAdmin = req.user.role === "admin";
+
+    // Check permissions
+    if (!isAdmin && req.user.id !== id) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only update your own profile.",
+      });
+    }
+
+    // Filter updates based on role
+    const allowedUpdates = {};
+    
+    for (const [key, value] of Object.entries(updates)) {
+      if (isAdmin) {
+        // Admin can update all fields except password and auth fields
+        if (!["password", "VerifyCode", "VerifyCodeExpiry", "isVerified"].includes(key)) {
+          allowedUpdates[key] = value;
+        }
+      } else {
+        // Employee can only update specific fields
+        if (EMPLOYEE_EDITABLE_FIELDS.includes(key)) {
+          allowedUpdates[key] = value;
+        }
+      }
+    }
+
+    if (Object.keys(allowedUpdates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid fields to update",
+      });
+    }
+
+    const employee = await Employmodel.findByIdAndUpdate(
+      id,
+      { $set: allowedUpdates },
+      { new: true, runValidators: true }
+    ).select("-password -VerifyCode -VerifyCodeExpiry");
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      admins,
+      message: "Profile updated successfully",
+      employee,
     });
-  }
-  catch (error) {
-    console.error("Error fetching admins:", error);
-    return res.status(500).json({   
+  } catch (error) {
+    console.error("Error updating employee:", error);
+    return res.status(500).json({
       success: false,
-      message: "Error fetching admins",
+      message: "Error updating profile",
     });
   }
 });
 
-export default Adminrouter;
+/**
+ * POST /employees
+ * Create new employee (admin only)
+ */
+employeeRouter.post("/", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+  try {
+    const {
+      Employname,
+      email,
+      password,
+      department,
+      position,
+      joiningDate,
+      employmentType,
+      salary,
+      image,
+    } = req.body;
+
+    // Validate required fields
+    if (!Employname || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, and password are required",
+      });
+    }
+
+    // Check if employee already exists
+    const existingEmployee = await Employmodel.findOne({ email });
+    if (existingEmployee) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee with this email already exists",
+      });
+    }
+
+    // Generate employee ID
+    const count = await Employmodel.countDocuments();
+    const employeeId = `EMP${String(count + 1).padStart(4, "0")}`;
+
+    const employee = await Employmodel.create({
+      Employname,
+      email,
+      password,
+      employeeId,
+      department,
+      position,
+      joiningDate: joiningDate || new Date(),
+      employmentType: employmentType || "full-time",
+      salary,
+      image,
+      isVerified: true, // Admin-created employees are auto-verified
+      status: "active",
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Employee created successfully",
+      employee: {
+        ...employee.toJSON(),
+        password: undefined,
+      },
+    });
+  } catch (error) {
+    console.error("Error creating employee:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error creating employee",
+    });
+  }
+});
+
+/**
+ * DELETE /employees/:id
+ * Delete employee (admin only)
+ */
+employeeRouter.delete("/:id", authMiddleware, adminOnlyMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const employee = await Employmodel.findByIdAndDelete(id);
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Employee deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting employee:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error deleting employee",
+    });
+  }
+});
+
+export default employeeRouter;
