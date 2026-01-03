@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/Card';
 import StatusBadge from '../components/StatusBadge';
@@ -167,6 +167,7 @@ export default function ProfilePage() {
         setTimeout(() => setSuccessMessage(''), 3000);
       }
     } catch (err) {
+      console.error('Update error:', err);
       setError('Failed to update profile');
     } finally {
       setSaving(false);
@@ -209,6 +210,9 @@ export default function ProfilePage() {
   const employeeName = profile?.employee?.Employname || user?.email?.split('@')[0] || 'User';
   const employeeEmail = profile?.employee?.email || user?.email || '';
   const employeeRole = profile?.employee?.role || user?.role || 'employee';
+
+  // Determine what to show as profile image
+  const displayImage = imagePreview || profile.profilePicture;
 
   return (
     <div className="profile-page">
@@ -589,6 +593,22 @@ export default function ProfilePage() {
           </div>
         </div>
       </Modal>
+
+      {/* Inline Styles for hover effect */}
+      <style jsx>{`
+        .profile-picture-overlay {
+          opacity: 0 !important;
+        }
+        
+        div:hover > .profile-picture-overlay {
+          opacity: 1 !important;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }

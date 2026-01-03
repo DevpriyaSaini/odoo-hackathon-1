@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Backend API base URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001';
 
 // Create axios instance
 const api = axios.create({
@@ -102,6 +102,10 @@ export const employeeAuthService = {
 };
 
 // ============ EMPLOYEE SERVICES ============
+
+// Cloudinary configuration for direct uploads
+const CLOUDINARY_CLOUD_NAME = 'dkpvhegme';
+const CLOUDINARY_UPLOAD_PRESET = 'devpriyasaini';
 
 export const employeeService = {
   // Get all employees (admin only)
@@ -252,4 +256,39 @@ export const dashboardService = {
   },
 };
 
+// ============ UPLOAD SERVICES ============
+
+export const uploadService = {
+  // Upload profile picture
+  uploadProfile: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await api.post('/upload/profile', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Upload document
+  uploadDocument: async (file) => {
+    const formData = new FormData();
+    formData.append('document', file);
+    const response = await api.post('/upload/document', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Delete uploaded file
+  deleteFile: async (url, publicId) => {
+    const response = await api.delete('/upload', { data: { url, publicId } });
+    return response.data;
+  },
+};
+
 export default api;
+
