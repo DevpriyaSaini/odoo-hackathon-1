@@ -204,6 +204,39 @@ EmployeeProfileRouter.put("/profile", protect, async (req, res) => {
   }
 });
 
+// Get specific employee profile (admin only)
+EmployeeProfileRouter.get(
+  "/profile/:employeeId",
+  protect,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { employeeId } = req.params;
+      const profile = await EmployeeProfile.findOne({
+        employee: employeeId,
+      }).populate("employee", "Employname email role");
+
+      if (!profile) {
+        return res.status(404).json({
+          success: false,
+          message: "Profile not found",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        profile,
+      });
+    } catch (error) {
+      console.error("Get specific profile error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch profile",
+      });
+    }
+  }
+);
+
 EmployeeProfileRouter.put(
   "/profile/:employeeId",
   protect,
@@ -215,15 +248,8 @@ EmployeeProfileRouter.put(
       const updatedProfile = await EmployeeProfile.findOneAndUpdate(
         { employee: employeeId },
         req.body,
-        { new: true }
+        { new: true, upsert: true, setDefaultsOnInsert: true }
       );
-
-      if (!updatedProfile) {
-        return res.status(404).json({
-          success: false,
-          message: "Profile not found",
-        });
-      }
 
       res.status(200).json({
         success: true,
