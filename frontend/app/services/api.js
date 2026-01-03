@@ -132,59 +132,12 @@ export const employeeService = {
     return response.data;
   },
 
-  // Upload profile picture directly to Cloudinary, then update backend
-  uploadProfilePicture: async (file) => {
-    try {
-      // Step 1: Upload directly to Cloudinary using upload preset
-      const cloudinaryFormData = new FormData();
-      cloudinaryFormData.append('file', file);
-      cloudinaryFormData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      cloudinaryFormData.append('folder', 'dayflow/profiles');
-      
-      const cloudinaryResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-          method: 'POST',
-          body: cloudinaryFormData,
-        }
-      );
-      
-      if (!cloudinaryResponse.ok) {
-        const errorData = await cloudinaryResponse.json();
-        throw new Error(errorData.error?.message || 'Failed to upload image to Cloudinary');
-      }
-      
-      const cloudinaryData = await cloudinaryResponse.json();
-      const imageUrl = cloudinaryData.secure_url;
-      
-      // Step 2: Try to update the profile, if it fails (404), create a new one
-      let response;
-      try {
-        response = await api.put('/employ-profile/profile', {
-          profilePicture: imageUrl,
-        });
-      } catch (updateError) {
-        // If profile doesn't exist, create it
-        if (updateError.response?.status === 404) {
-          response = await api.post('/employ-profile/profile', {
-            profilePicture: imageUrl,
-          });
-        } else {
-          throw updateError;
-        }
-      }
-      
-      return {
-        success: true,
-        profilePicture: imageUrl,
-        profile: response.data.profile,
-      };
-    } catch (error) {
-      console.error('Upload error:', error);
-      throw error;
-    }
+  // Admin update employee profile
+  adminUpdate: async (employeeId, data) => {
+    const response = await api.put(`/employ-profile/profile/${employeeId}`, data);
+    return response.data;
   },
-};
+}
 // ============ ATTENDANCE SERVICES ============
 
 export const attendanceService = {
