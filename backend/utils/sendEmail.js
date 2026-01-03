@@ -2,45 +2,45 @@ const nodemailer = require('nodemailer');
 
 // Create transporter
 const createTransporter = () => {
-    return nodemailer.createTransport({
-        host: process.env.EMAIL_HOST,
-        port: process.env.EMAIL_PORT,
-        secure: false, // true for 465, false for other ports
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
+  return nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: 465,
+    secure: true, // use SSL
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS
+    }
+  });
 };
 
 // Send email utility
 const sendEmail = async (options) => {
-    const transporter = createTransporter();
+  const transporter = createTransporter();
 
-    const mailOptions = {
-        from: `Dayflow HRMS <${process.env.EMAIL_USER}>`,
-        to: options.email,
-        subject: options.subject,
-        html: options.html
-    };
+  const mailOptions = {
+    from: `Dayflow HRMS <${process.env.EMAIL_USER}>`,
+    to: options.email,
+    subject: options.subject,
+    html: options.html
+  };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Email sent: ', info.messageId);
-        return { success: true, messageId: info.messageId };
-    } catch (error) {
-        console.error('Email error: ', error.message);
-        // Don't throw error, just log it (for development without email setup)
-        return { success: false, error: error.message };
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent: ', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Email error: ', error.message);
+    // Don't throw error, just log it (for development without email setup)
+    return { success: false, error: error.message };
+  }
 };
 
 // Email Templates
 const emailTemplates = {
-    // Email Verification Template
-    verification: (name, verificationUrl) => ({
-        subject: 'Verify Your Email - Dayflow HRMS',
-        html: `
+  // Email Verification Template
+  verification: (name, verificationUrl) => ({
+    subject: 'Verify Your Email - Dayflow HRMS',
+    html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
           <h1 style="color: white; margin: 0; text-align: center;">Dayflow HRMS</h1>
@@ -56,12 +56,12 @@ const emailTemplates = {
         </div>
       </div>
     `
-    }),
+  }),
 
-    // Leave Request Notification (to HR)
-    leaveRequestNotification: (employeeName, leaveType, startDate, endDate, remarks) => ({
-        subject: `New Leave Request from ${employeeName} - Dayflow HRMS`,
-        html: `
+  // Leave Request Notification (to HR)
+  leaveRequestNotification: (employeeName, leaveType, startDate, endDate, remarks) => ({
+    subject: `New Leave Request from ${employeeName} - Dayflow HRMS`,
+    html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
           <h1 style="color: white; margin: 0; text-align: center;">Dayflow HRMS</h1>
@@ -80,12 +80,12 @@ const emailTemplates = {
         </div>
       </div>
     `
-    }),
+  }),
 
-    // Leave Decision Notification (to Employee)
-    leaveDecisionNotification: (employeeName, leaveType, startDate, endDate, status, remarks) => ({
-        subject: `Leave Request ${status} - Dayflow HRMS`,
-        html: `
+  // Leave Decision Notification (to Employee)
+  leaveDecisionNotification: (employeeName, leaveType, startDate, endDate, status, remarks) => ({
+    subject: `Leave Request ${status} - Dayflow HRMS`,
+    html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
           <h1 style="color: white; margin: 0; text-align: center;">Dayflow HRMS</h1>
@@ -103,12 +103,12 @@ const emailTemplates = {
         </div>
       </div>
     `
-    }),
+  }),
 
-    // Password Reset Template
-    passwordReset: (name, resetUrl) => ({
-        subject: 'Password Reset Request - Dayflow HRMS',
-        html: `
+  // Password Reset Template
+  passwordReset: (name, resetUrl) => ({
+    subject: 'Password Reset Request - Dayflow HRMS',
+    html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
           <h1 style="color: white; margin: 0; text-align: center;">Dayflow HRMS</h1>
@@ -125,7 +125,7 @@ const emailTemplates = {
         </div>
       </div>
     `
-    })
+  })
 };
 
 module.exports = { sendEmail, emailTemplates };
