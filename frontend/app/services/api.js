@@ -165,6 +165,12 @@ export const attendanceService = {
     return response.data;
   },
 
+  // Alias for getMine
+  getMy: async (params) => {
+    const response = await api.get('/attendance/me', { params });
+    return response.data;
+  },
+
   // Get all attendance (admin only)
   getAll: async (params) => {
     const response = await api.get('/attendance/all', { params });

@@ -2366,3 +2366,391 @@ tbody tr:last-child td {
   padding: 6px 12px !important;
   font-size: 13px !important;
 }
+
+/* ===== Attendance Page ===== */
+.attendance-page {
+  padding: 0;
+}
+
+.attendance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-badge {
+  padding: 6px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.checkin-section {
+  display: flex;
+  gap: 12px;
+}
+
+.checkin-btn,
+.checkout-btn {
+  padding: 12px 28px !important;
+  font-size: 15px !important;
+  font-weight: 600;
+  border-radius: 12px !important;
+}
+
+.checked-out-badge {
+  padding: 12px 24px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+/* Controls */
+.attendance-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.date-navigation {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--gray-200);
+  background: var(--card-bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: var(--primary-50);
+  border-color: var(--primary-300);
+  color: var(--primary-600);
+}
+
+.date-input,
+.month-select {
+  min-width: 160px;
+}
+
+.view-toggle {
+  display: flex;
+  background: var(--gray-100);
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.toggle-btn {
+  padding: 8px 20px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn.active {
+  background: white;
+  color: var(--primary-600);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Summary Cards */
+.summary-cards {
+  display: flex;
+  gap: 12px;
+}
+
+.summary-card {
+  padding: 12px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--gray-200);
+}
+
+.summary-card.present {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.summary-card.leave {
+  background: rgba(251, 146, 60, 0.08);
+  border-color: rgba(251, 146, 60, 0.2);
+}
+
+.summary-card.total {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+/* Date Display */
+.current-date-display {
+  margin-bottom: 20px;
+}
+
+.current-date-display h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* Attendance Table */
+.attendance-table-container {
+  background: var(--card-bg);
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.attendance-table th {
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--gray-500);
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.attendance-table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.attendance-table tr:last-child td {
+  border-bottom: none;
+}
+
+.attendance-table tr:hover {
+  background: var(--gray-50);
+}
+
+.employee-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.emp-avatar-small {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+}
+
+.date-cell {
+  font-weight: 500;
+}
+
+.time-cell {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.time-cell.checkin {
+  color: var(--success);
+}
+
+.time-cell.checkout {
+  color: var(--danger);
+}
+
+.hours-cell {
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
+}
+
+.hours-cell.extra {
+  color: var(--primary-600);
+}
+
+.empty-row {
+  text-align: center;
+  padding: 48px !important;
+}
+
+.empty-state-small {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--gray-400);
+}
+
+.empty-state-small span {
+  font-size: 32px;
+}
+
+.empty-state-small p {
+  font-size: 14px;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-present {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+}
+
+.status-absent {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.status-halfday {
+  background: rgba(251, 146, 60, 0.12);
+  color: #ea580c;
+}
+
+.status-leave {
+  background: rgba(168, 85, 247, 0.12);
+  color: #9333ea;
+}
+
+/* Admin Summary Footer */
+.admin-summary-footer {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+}
+
+.summary-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stat-icon.present {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+}
+
+.stat-icon.absent {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.stat-icon.halfday {
+  background: rgba(251, 146, 60, 0.15);
+  color: #ea580c;
+}
+
+.stat-icon.leave {
+  background: rgba(168, 85, 247, 0.15);
+  color: #9333ea;
+}
+
+.stat-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.stat-text {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .attendance-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .summary-cards {
+    justify-content: center;
+  }
+
+  .admin-summary-footer {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .attendance-table th,
+  .attendance-table td {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+}
