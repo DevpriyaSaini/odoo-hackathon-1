@@ -172,6 +172,15 @@ export default function AdminDashboard() {
               <p>View and manage employee profiles</p>
             </div>
           </a>
+          <a href="/leaves" className="quick-action" style={{ textDecoration: 'none' }}>
+            <div className="quick-action-icon">
+              <CalendarIcon />
+            </div>
+            <div className="quick-action-content">
+              <h4>Manage Leaves</h4>
+              <p>Review and approve requests</p>
+            </div>
+          </a>
           <a href="/attendance" className="quick-action" style={{ textDecoration: 'none' }}>
             <div className="quick-action-icon">
               <ClockIcon />

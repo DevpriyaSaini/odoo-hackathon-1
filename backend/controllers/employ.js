@@ -126,6 +126,8 @@ function generateToken(employee) {
       id: employee._id,
       email: employee.email,
       role: employee.role,
+      name: employee.Employname,
+      leaveBalance: employee.leaveBalance || { paid: 12, sick: 6, unpaid: 0 },
     },
     process.env.JWT_SECRET,
     { expiresIn: "1d" }

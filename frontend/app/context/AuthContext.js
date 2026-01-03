@@ -24,6 +24,8 @@ export function AuthProvider({ children }) {
             id: payload.id,
             email: payload.email,
             role: payload.role,
+            name: payload.name,
+            leaveBalance: payload.leaveBalance,
           });
         } else {
           // Token expired - clean up
@@ -46,6 +48,8 @@ export function AuthProvider({ children }) {
         id: payload.id,
         email: payload.email,
         role: payload.role,
+        name: payload.name,
+        leaveBalance: payload.leaveBalance,
       });
       
       // Redirect based on role

@@ -205,6 +205,12 @@ export const leaveService = {
     return response.data;
   },
 
+  // Alias for getMine
+  getMy: async () => {
+    const response = await api.get('/leaves/me');
+    return response.data;
+  },
+
   // Get all leaves (admin only)
   getAll: async (params) => {
     const response = await api.get('/leaves/all', { params });
