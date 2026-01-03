@@ -284,4 +284,30 @@ Adminrouter.get("/all-admins", async (req, res) => {
   }
 });
 
+Adminrouter.get("/dashboard/stats", async (req, res) => {
+  try {
+    const totalEmployees = await import("../model/employ.js").then(m => m.default.countDocuments({}));
+    // Mock other stats for now until those modules are fully integrated
+    const presentToday = 0; 
+    const pendingLeaves = 0;
+    const onLeaveToday = 0;
+
+    return res.status(200).json({
+      success: true,
+      stats: {
+        totalEmployees,
+        presentToday,
+        pendingLeaves,
+        onLeaveToday
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching admin stats:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard stats",
+    });
+  }
+});
+
 export default Adminrouter;

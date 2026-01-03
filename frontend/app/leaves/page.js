@@ -6,6 +6,8 @@ import LoadingSpinner, { ButtonSpinner } from '../components/LoadingSpinner';
 import Modal from '../components/Modal';
 import { leaveService } from '../services/api';
 
+import { leaveService } from '../services/api';
+
 export default function LeavesPage() {
   const { user, loading: authLoading } = useAuth();
   const isAdmin = user?.role === 'admin';
@@ -48,16 +50,33 @@ export default function LeavesPage() {
       setLoading(true);
       let response;
       
-      if (isAdmin) {
+      let response;
+      if (isAdmin()) {
         response = await leaveService.getAll();
       } else {
-        response = await leaveService.getMy();
+        response = await leaveService.getMine();
       }
-      
+
       if (response.success) {
-        setLeaves(response.leaves || []);
-        setSummary(response.summary || {});
-        if (response.balance) setBalance(response.balance);
+        const mappedLeaves = response.leaves.map(l => ({
+          id: l._id,
+          ...l,
+          employee: l.employeeId // Ensure this matches population in backend
+        }));
+        setLeaves(mappedLeaves);
+        
+        if (response.summary) {
+          setSummary(response.summary);
+        } else {
+           // Calc summary if not provided (fallback)
+           setSummary({
+            pending: mappedLeaves.filter(l => l.status === 'pending').length,
+            approved: mappedLeaves.filter(l => l.status === 'approved').length,
+            rejected: mappedLeaves.filter(l => l.status === 'rejected').length,
+           });
+        }
+      } else {
+        setError('Failed to fetch leaves');
       }
       setError(null);
     } catch (err) {
@@ -72,63 +91,40 @@ export default function LeavesPage() {
     e.preventDefault();
     try {
       setSubmitting(true);
-      const response = await leaveService.apply(applyData);
+      
+      const response = await leaveService.apply(formData);
       
       if (response.success) {
-        setSuccessMessage('Leave application submitted successfully!');
-        setIsApplyModalOpen(false);
-        setApplyData({ type: 'paid', startDate: '', endDate: '', reason: '' });
-        fetchLeaves();
-        setTimeout(() => setSuccessMessage(''), 3000);
+        setShowModal(false);
+        setFormData({ type: 'paid', startDate: '', endDate: '', reason: '' });
+        fetchLeaves(); // Refresh list
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to submit leave application');
+      console.error(err);
+      setError(err.response?.data?.message || 'Failed to apply for leave');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleAction = async () => {
-    if (!selectedLeave || !actionType) return;
-    
+  const handleApprove = async (id) => {
     try {
-      setSubmitting(true);
-      let response;
-      
-      if (actionType === 'approve') {
-        response = await leaveService.approve(selectedLeave._id, adminComment);
-      } else {
-        response = await leaveService.reject(selectedLeave._id, adminComment);
-      }
-      
-      if (response.success) {
-        setSuccessMessage(`Leave ${actionType}d successfully!`);
-        setIsActionModalOpen(false);
-        setSelectedLeave(null);
-        setAdminComment('');
-        fetchLeaves();
-        setTimeout(() => setSuccessMessage(''), 3000);
-      }
+      await leaveService.approve(id, 'Approved by admin');
+      fetchLeaves();
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${actionType} leave`);
-    } finally {
-      setSubmitting(false);
+      console.error(err);
+      setError('Failed to approve leave');
     }
   };
 
-  const openActionModal = (leave, action) => {
-    setSelectedLeave(leave);
-    setActionType(action);
-    setAdminComment('');
-    setIsActionModalOpen(true);
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
+  const handleReject = async (id) => {
+    try {
+      await leaveService.reject(id, 'Rejected by admin');
+      fetchLeaves();
+    } catch (err) {
+      console.error(err);
+      setError('Failed to reject leave');
+    }
   };
 
   const getLeaveTypeLabel = (type) => {

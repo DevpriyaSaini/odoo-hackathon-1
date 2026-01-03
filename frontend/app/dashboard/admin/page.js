@@ -54,23 +54,47 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // For now, use mock data since backend endpoints aren't all implemented
-      // In production, this would call dashboardService.getAdminStats()
-      
-      // Mock data
-      setStats({
-        totalEmployees: 24,
-        presentToday: 18,
-        pendingLeaves: 5,
-        onLeaveToday: 3,
-      });
-
-      setRecentLeaves([
-        { id: 1, employee: 'John Doe', type: 'sick', startDate: '2026-01-03', endDate: '2026-01-05', status: 'pending' },
-        { id: 2, employee: 'Jane Smith', type: 'paid', startDate: '2026-01-10', endDate: '2026-01-15', status: 'pending' },
-        { id: 3, employee: 'Mike Johnson', type: 'unpaid', startDate: '2026-01-08', endDate: '2026-01-08', status: 'approved' },
+      const [statsResponse, leavesResponse] = await Promise.all([
+        dashboardService.getAdminStats(),
+        leaveService.getAll({ limit: 5 })
       ]);
+      
+      let newStats = {
+        totalEmployees: 0,
+        presentToday: 0,
+        pendingLeaves: 0,
+        onLeaveToday: 0,
+      };
 
+      if (statsResponse.success) {
+        newStats = {
+          totalEmployees: statsResponse.stats.totalEmployees,
+          presentToday: statsResponse.stats.presentToday || 0,
+          pendingLeaves: statsResponse.stats.pendingLeaves || 0,
+          onLeaveToday: statsResponse.stats.onLeaveToday || 0,
+        };
+      }
+      
+      if (leavesResponse.success) {
+        // Update stats from real leave data if needed
+        if (leavesResponse.summary) {
+           newStats.pendingLeaves = leavesResponse.summary.pending || newStats.pendingLeaves;
+        }
+
+        const formattedLeaves = leavesResponse.leaves.map(l => ({
+          id: l._id,
+          employee: l.employeeId?.Employname || 'Unknown',
+          type: l.type,
+          startDate: new Date(l.startDate).toLocaleDateString(),
+          endDate: new Date(l.endDate).toLocaleDateString(),
+          status: l.status
+        }));
+        setRecentLeaves(formattedLeaves);
+      } else {
+        setRecentLeaves([]);
+      }
+
+      setStats(newStats);
       setError(null);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
