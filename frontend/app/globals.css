@@ -240,22 +240,28 @@ body {
   text-transform: capitalize;
 }
 
-.badge-present, .badge-approved, .badge-success {
+.badge-present,
+.badge-approved,
+.badge-success {
   background: rgba(34, 197, 94, 0.12);
   color: #15803d;
 }
 
-.badge-absent, .badge-rejected, .badge-danger {
+.badge-absent,
+.badge-rejected,
+.badge-danger {
   background: rgba(239, 68, 68, 0.12);
   color: #dc2626;
 }
 
-.badge-pending, .badge-warning {
+.badge-pending,
+.badge-warning {
   background: rgba(245, 158, 11, 0.12);
   color: #b45309;
 }
 
-.badge-leave, .badge-info {
+.badge-leave,
+.badge-info {
   background: rgba(14, 165, 233, 0.12);
   color: #0284c7;
 }
@@ -623,7 +629,9 @@ tbody tr:last-child td {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-container {
@@ -698,6 +706,7 @@ tbody tr:last-child td {
     opacity: 0;
     transform: scale(0.95);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -744,6 +753,73 @@ tbody tr:last-child td {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+/* Edit Form Styles */
+.edit-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.edit-form-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.edit-form-container::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 3px;
+}
+
+.edit-form-container::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 3px;
+}
+
+.edit-form-container::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-400);
+}
+
+.edit-section {
+  padding: 20px;
+  background: var(--gray-50);
+  border-radius: 12px;
+  border: 1px solid var(--gray-200);
+}
+
+.edit-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-section-title::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-500));
+  border-radius: 2px;
+}
+
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .edit-form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ===== Empty State ===== */
@@ -852,14 +928,851 @@ tbody tr:last-child td {
   color: var(--gray-500);
 }
 
+/* ===== Profile Page ===== */
+.profile-page {
+  max-width: 1200px;
+}
+
+.profile-header {
+  margin-bottom: 24px;
+}
+
+.profile-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-breadcrumb {
+  font-size: 14px;
+  color: var(--gray-500);
+  padding: 4px 12px;
+  background: var(--primary-100);
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.profile-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--foreground);
+  background: linear-gradient(135deg, var(--primary-600), var(--accent-500));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.profile-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+}
+
+/* Profile Sidebar */
+.profile-sidebar {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  padding: 32px;
+  height: fit-content;
+  position: sticky;
+  top: 32px;
+}
+
+.profile-avatar-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.profile-avatar {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 16px;
+}
+
+.profile-avatar span,
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+  object-fit: cover;
+}
+
+.avatar-edit-btn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--gray-600);
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-edit-btn:hover {
+  background: var(--primary-50);
+  color: var(--primary-600);
+  border-color: var(--primary-300);
+}
+
+.profile-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.profile-position {
+  font-size: 14px;
+  color: var(--gray-500);
+}
+
+.profile-quick-info {
+  border-top: 1px solid var(--gray-200);
+  padding-top: 20px;
+  margin-bottom: 24px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.info-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.info-badge.coral {
+  background: linear-gradient(135deg, #ff7e5f, #feb47b);
+  color: white;
+}
+
+.profile-edit-btn {
+  width: 100%;
+}
+
+/* Profile Content Area */
+.profile-content {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+/* Profile Tabs */
+.profile-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0 24px;
+  background: var(--gray-50);
+}
+
+.profile-tab {
+  padding: 16px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--gray-500);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.profile-tab:hover {
+  color: var(--primary-600);
+}
+
+.profile-tab.active {
+  color: var(--primary-600);
+  font-weight: 600;
+}
+
+.profile-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-500), var(--accent-500));
+  border-radius: 3px 3px 0 0;
+}
+
+/* Tab Content */
+.profile-tab-content {
+  padding: 32px;
+}
+
+.tab-section {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 20px;
+}
+
+/* Info Grid for Private Info */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.info-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-row-label {
+  font-size: 13px;
+  color: var(--gray-500);
+  min-width: 120px;
+}
+
+.info-row-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  text-align: right;
+}
+
+/* Bank Details */
+.bank-details-section {
+  background: var(--gray-50);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.bank-details-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+/* Documents Grid */
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.document-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--gray-50);
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.document-card.uploaded {
+  border-style: solid;
+  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.document-icon {
+  font-size: 24px;
+}
+
+.document-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 2px;
+}
+
+.document-file {
+  display: block;
+  font-size: 12px;
+  color: var(--gray-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.document-download {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: var(--success);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.document-download:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.upload-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.document-upload-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px dashed var(--gray-300);
+  background: var(--gray-100);
+  color: var(--gray-500);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.document-upload-btn:hover {
+  border-color: var(--primary-400);
+  background: var(--primary-50);
+  color: var(--primary-600);
+  transform: scale(1.05);
+}
+
+.document-card:hover .document-upload-btn {
+  border-color: var(--primary-400);
+  background: var(--primary-100);
+  color: var(--primary-600);
+}
+
+/* Document List (New Enhanced Styles) */
+.documents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--card-bg);
+  border: 1px solid var(--gray-200);
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.document-item:hover {
+  border-color: var(--primary-300);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.document-item.uploaded {
+  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.03);
+}
+
+.document-item-icon {
+  flex-shrink: 0;
+}
+
+.document-emoji {
+  font-size: 32px;
+  display: block;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gray-100);
+  border-radius: 10px;
+}
+
+.document-thumbnail {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid var(--success);
+}
+
+.document-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.document-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.document-item-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--gray-600);
+}
+
+.document-item-hint {
+  font-size: 13px;
+  color: var(--gray-400);
+}
+
+.file-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--primary-100);
+  color: var(--primary-700);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.document-item.uploaded .file-type-badge {
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
+}
+
+.document-item-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Document Preview Modal */
+.document-preview {
+  text-align: center;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pdf-iframe {
+  width: 100%;
+  height: 50vh;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+}
+
+.pdf-fallback {
+  padding: 16px;
+  background: var(--gray-50);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.pdf-fallback p {
+  margin-bottom: 12px;
+  color: var(--gray-500);
+  font-size: 14px;
+}
+
+/* Salary Cards */
+.salary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.salary-card {
+  background: var(--gray-50);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.salary-card h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--gray-200);
+}
+
+.salary-card.earnings h4 {
+  color: var(--success);
+}
+
+.salary-card.deductions h4 {
+  color: var(--danger);
+}
+
+.salary-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.salary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.salary-item-label {
+  font-size: 14px;
+  color: var(--gray-600);
+}
+
+.salary-item-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.salary-item-value.deduction {
+  color: var(--danger);
+}
+
+.salary-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+  font-weight: 600;
+}
+
+.salary-total .amount {
+  font-size: 18px;
+  color: var(--success);
+}
+
+.salary-total .amount.deduction {
+  color: var(--danger);
+}
+
+.net-salary-card {
+  background: linear-gradient(135deg, var(--primary-600), var(--primary-800));
+  border-radius: 16px;
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+}
+
+.net-salary-label {
+  font-size: 16px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.net-salary-amount {
+  font-size: 32px;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+.net-salary-period {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* Security Form */
+.security-form {
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.security-section {
+  padding-top: 24px;
+  border-top: 1px solid var(--gray-200);
+}
+
+/* ===== File Upload ===== */
+.file-upload-wrapper {
+  width: 100%;
+}
+
+.file-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  border: 2px dashed var(--gray-300);
+  border-radius: 16px;
+  background: var(--gray-50);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  min-height: 150px;
+}
+
+.file-upload-zone:hover {
+  border-color: var(--primary-400);
+  background: var(--primary-50);
+}
+
+.file-upload-zone.dragging {
+  border-color: var(--primary-500);
+  background: var(--primary-100);
+  transform: scale(1.02);
+}
+
+.file-upload-zone.uploading {
+  pointer-events: none;
+  border-style: solid;
+  border-color: var(--primary-400);
+}
+
+.file-upload-zone.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upload-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.upload-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+
+.upload-hint {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.upload-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-circle {
+  position: relative;
+  width: 60px;
+  height: 60px;
+}
+
+.progress-circle svg {
+  width: 60px;
+  height: 60px;
+  transform: rotate(-90deg);
+}
+
+.progress-circle .progress-bg {
+  fill: none;
+  stroke: var(--gray-200);
+  stroke-width: 3;
+}
+
+.progress-circle .progress-bar {
+  fill: none;
+  stroke: var(--primary-500);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-600);
+}
+
+.upload-status {
+  font-size: 14px;
+  color: var(--gray-600);
+  font-weight: 500;
+}
+
+.upload-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* Profile Picture Upload */
+.profile-picture-upload {
+  cursor: pointer;
+}
+
+.avatar-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--card-bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-initial {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--primary-400), var(--primary-600));
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mini-progress {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 1024px) {
   .sidebar {
     width: 220px;
   }
+
   .main-content {
     margin-left: 220px;
     padding: 24px;
+  }
+
+  .profile-container {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .info-grid {
+    gap: 24px;
+  }
+
+  .salary-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -869,21 +1782,63 @@ tbody tr:last-child td {
     width: 280px;
     transition: transform 0.3s ease;
   }
+
   .sidebar.open {
     transform: translateX(0);
   }
+
   .main-content {
     margin-left: 0;
     padding: 20px;
   }
+
   .auth-card {
     padding: 32px 24px;
   }
+
   .stats-grid {
     grid-template-columns: 1fr 1fr;
   }
+
   .page-header h1 {
     font-size: 24px;
+  }
+
+  .profile-container {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-sidebar {
+    position: static;
+    order: -1;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .profile-tabs {
+    overflow-x: auto;
+    padding: 0 16px;
+  }
+
+  .profile-tab {
+    white-space: nowrap;
+    padding: 14px 16px;
+  }
+
+  .profile-tab-content {
+    padding: 24px;
+  }
+
+  .net-salary-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .net-salary-amount {
+    margin-left: 0;
   }
 }
 

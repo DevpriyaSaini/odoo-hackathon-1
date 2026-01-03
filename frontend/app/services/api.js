@@ -116,9 +116,21 @@ export const employeeService = {
     return response.data;
   },
 
+  // Create employee profile
+  createProfile: async (data) => {
+    const response = await api.post('/employ-profile/profile', data);
+    return response.data;
+  },
+
   // Update employee profile
   update: async (id, data) => {
     const response = await api.put('/employ-profile/profile', data);
+    return response.data;
+  },
+
+  // Admin update employee profile
+  adminUpdate: async (employeeId, data) => {
+    const response = await api.put(`/employ-profile/profile/${employeeId}`, data);
     return response.data;
   },
 }

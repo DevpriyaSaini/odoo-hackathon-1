@@ -67,11 +67,26 @@ EmployeeProfileRouter.get("/profile", protect, async (req, res) => {
 
 EmployeeProfileRouter.put("/profile", protect, async (req, res) => {
   try {
-    const allowedFields = ["phone", "address", "profilePicture"];
+    // All editable fields except salaryStructure (admin-only)
+    const allowedFields = [
+      "phone",
+      "address",
+      "profilePicture",
+      "dateOfBirth",
+      "nationality",
+      "personalEmail",
+      "gender",
+      "maritalStatus",
+      "jobDetails",
+      "bankDetails",
+      "documents",
+    ];
 
     const updates = {};
     allowedFields.forEach((field) => {
-      if (req.body[field]) updates[field] = req.body[field];
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
     });
 
     const updatedProfile = await EmployeeProfile.findOneAndUpdate(
